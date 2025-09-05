@@ -14,11 +14,14 @@ interface ClientsTableProps {
 }
 
 export function ClientsTable({ clients, onEdit, onDelete, onView, isLoading }: ClientsTableProps) {
+  // Garantir que clients seja sempre um array válido
+  const clientsList = Array.isArray(clients) ? clients : [];
+  
   if (isLoading) {
     return <div className="text-center py-4">Carregando clientes...</div>;
   }
   
-  if (clients.length === 0) {
+  if (clientsList.length === 0) {
     return <div className="text-center py-4">Nenhum cliente encontrado</div>;
   }
 
@@ -35,7 +38,7 @@ export function ClientsTable({ clients, onEdit, onDelete, onView, isLoading }: C
         </TableRow>
       </TableHeader>
       <TableBody>
-        {clients.map((client) => (
+        {clientsList.map((client) => (
           <TableRow key={client.id}>
             <TableCell className="font-medium">{client.name}</TableCell>
             <TableCell>

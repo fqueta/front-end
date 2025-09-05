@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { AddressInputs } from "@/components/lib/AddressInputs";
+import { cepApplyMask, cepRemoveMask } from "@/lib/masks/cep-apply-mask";
 
 interface AddressAccordionProps {
   form: any;
@@ -33,7 +35,7 @@ export function AddressAccordion({ form }: AddressAccordionProps) {
         <AccordionItem value="endereco">
           <AccordionTrigger>Endereço</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="config.cep"
@@ -125,7 +127,8 @@ export function AddressAccordion({ form }: AddressAccordionProps) {
                   </FormItem>
                 )}
               />
-            </div>
+            </div> */}
+            <AddressInputs form={form} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>

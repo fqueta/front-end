@@ -9,8 +9,12 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
+import ClientView from "./pages/ClientView";
 import ServiceObjects from "./pages/ServiceObjects";
+import Aircraft from "./pages/Aircraft";
+import AircraftView from "./pages/AircraftView";
 import Products from "./pages/Products";
+import Categories from "./pages/Categories";
 import Permissions from "./pages/settings/Permissions";
 import Users from "./pages/settings/Users";
 import Login from "./pages/auth/Login";
@@ -20,6 +24,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PermissionGuard } from "./components/auth/PermissionGuard";
+import Dashboard2 from "./pages/Dashboard2";
 
 console.log('App.tsx: Starting app initialization');
 console.log('QueryClient available:', QueryClient);
@@ -53,10 +58,24 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/painel2" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Dashboard2 />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/clients" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <Clients />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/clients/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ClientView />
                   </AppLayout>
                 </ProtectedRoute>
               } />
@@ -67,10 +86,31 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/aircraft" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Aircraft />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/aircraft/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AircraftView />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/products" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <Products />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/categories" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Categories />
                   </AppLayout>
                 </ProtectedRoute>
               } />

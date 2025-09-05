@@ -180,7 +180,7 @@ export default function Users() {
 
   const handleOpenModal = (user?: UserRecord) => {
     if (user) {
-      console.log(user);
+      // console.log(user);
       
       setEditingUser(user);
       form.reset({

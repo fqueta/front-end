@@ -1,3 +1,10 @@
+export interface TotalFiltrados {
+  total_bot_conversations: number;
+  total_closed_deals: number;
+  total_human_conversations: number;
+  total_proposals: number;
+  total_visitors: number;
+}
 export interface MetricRecord {
   id: string;
   user_id: string;
@@ -14,7 +21,8 @@ export interface MetricRecord {
 }
 export interface MetricList {
   registros: MetricRecord[];
-  agregados?:[]
+  agregados?:[];
+  totais_filtrados?: TotalFiltrados;
 }
 export interface CreateMetricInput {
   // id: string;

@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Client } from "@/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
+import { useServiceObjectsList, useCreateServiceObject, useUpdateServiceObject, useDeleteServiceObject } from "@/hooks/serviceObjects";
+import { useClientsList } from "@/hooks/clients";
+import { ServiceObjectForm } from "@/components/serviceObjects/ServiceObjectForm";
+import { ServiceObjectsTable } from "@/components/serviceObjects/ServiceObjectsTable";
+import type { CreateServiceObjectInput, UpdateServiceObjectInput, ServiceObjectRecord } from "@/types/serviceObjects";
 
 const schema = z.object({
   client_id: z.string().min(1, "Cliente é obrigatório"),
@@ -17,76 +19,101 @@ const schema = z.object({
   identifier_primary: z.string().min(1, "Identificador principal é obrigatório"),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
-  year: z.string().optional(),
+  year: z.string().optional().transform(val => val ? parseInt(val) : undefined),
   color: z.string().optional(),
   notes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const mockClients: Client[] = [
-  { id: "1", name: "ACME Ltda.", email: "contato@acme.com", phone: "(11) 99999-9999", document: "12.345.678/0001-90", address: "Rua A, 123", city: "São Paulo", state: "SP", zip_code: "01000-000", active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  { id: "2", name: "Blue Sky", email: "hello@bluesky.com", phone: "(21) 98888-8888", document: "98.765.432/0001-10", address: "Av. B, 456", city: "Rio de Janeiro", state: "RJ", zip_code: "20000-000", active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-];
-
-interface ServiceObjectRow {
-  id: string;
-  client_id: string;
-  client_name: string;
-  type: "automovel" | "aeronave";
-  identifier_primary: string;
-  manufacturer?: string;
-  model?: string;
-  year?: string;
-  color?: string;
-}
-
 const ServiceObjects = () => {
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<ServiceObjectRow[]>([{
-    id: "obj-1",
-    client_id: mockClients[0].id,
-    client_name: mockClients[0].name,
-    type: "automovel",
-    identifier_primary: "ABC-1D23",
-    manufacturer: "Toyota",
-    model: "Corolla",
-    year: "2020",
-    color: "Prata",
-  }]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
+  // Hooks para API
+  const { data: serviceObjectsData, isLoading: isLoadingServiceObjects, refetch } = useServiceObjectsList();
+  const { data: clientsData, isLoading: isLoadingClients } = useClientsList();
+  const createMutation = useCreateServiceObject();
+  const updateMutation = useUpdateServiceObject();
+  const deleteMutation = useDeleteServiceObject();
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { type: "automovel" },
   });
 
-  const type = watch("type");
+  const serviceObjects = serviceObjectsData?.data || [];
+  const clients = clientsData?.data || [];
 
   useEffect(() => {
     document.title = "Objetos do Serviço | Sistema OS";
   }, []);
 
-  const onSubmit = (values: FormValues) => {
-    const client = mockClients.find(c => c.id === values.client_id)!;
-    setRows(prev => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        client_id: values.client_id,
-        client_name: client.name,
-        type: values.type,
-        identifier_primary: values.identifier_primary,
-        manufacturer: values.manufacturer,
-        model: values.model,
-        year: values.year,
-        color: values.color,
+  /**
+   * Função para submeter o formulário (criar ou editar)
+   */
+  const onSubmit = async (data: FormValues) => {
+    try {
+      if (editingId) {
+        // Editar objeto existente
+        await updateMutation.mutateAsync({ id: editingId, data });
+        setEditingId(null);
+      } else {
+        // Criar novo objeto
+        await createMutation.mutateAsync(data as CreateServiceObjectInput);
       }
-    ]);
-    setOpen(false);
-    reset({ type: values.type });
+      form.reset();
+      setOpen(false);
+    } catch (error) {
+      console.error('Erro ao salvar objeto de serviço:', error);
+    }
   };
 
-  const identifierLabel = useMemo(() => type === "automovel" ? "Placa/Chassi" : "Matrícula/Nº Série", [type]);
+  /**
+   * Função para iniciar a edição de um objeto
+   */
+  const handleEdit = (serviceObject: ServiceObjectRecord) => {
+    setEditingId(serviceObject.id);
+    form.setValue('client_id', serviceObject.client_id);
+    form.setValue('type', serviceObject.type);
+    // Usar o identificador apropriado baseado no tipo
+    const primaryIdentifier = serviceObject.type === 'automovel' 
+      ? (serviceObject.placa || serviceObject.chassi || serviceObject.renavam || '')
+      : (serviceObject.matricula || serviceObject.numero_serie || '');
+    form.setValue('identifier_primary', primaryIdentifier);
+    form.setValue('manufacturer', serviceObject.manufacturer || '');
+    form.setValue('model', serviceObject.model || '');
+    form.setValue('year', serviceObject.year ? serviceObject.year.toString() : '');
+    form.setValue('color', serviceObject.color || '');
+    form.setValue('notes', serviceObject.notes || '');
+    setOpen(true);
+  };
+
+  /**
+   * Função para confirmar a exclusão de um objeto
+   */
+  const handleDelete = async () => {
+    if (deleteId) {
+      try {
+        await deleteMutation.mutateAsync(deleteId);
+        setDeleteId(null);
+      } catch (error) {
+        console.error('Erro ao deletar objeto de serviço:', error);
+      }
+    }
+  };
+
+  /**
+   * Função para cancelar a edição
+   */
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    form.reset();
+    setOpen(false);
+  };
+
+  const editingServiceObject = editingId ? serviceObjects.find(obj => obj.id === editingId) || null : null;
 
   return (
     <main className="p-6">
@@ -99,101 +126,48 @@ const ServiceObjects = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Objetos</CardTitle>
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                handleCancelEdit();
+              } else {
+                setOpen(isOpen);
+              }
+            }}>
               <DialogTrigger asChild>
-                <Button size="sm">Novo Objeto</Button>
+                <Button size="sm" disabled={isLoadingClients}>
+                  {isLoadingClients ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Carregando...</>
+                  ) : (
+                    editingId ? 'Editar Objeto' : 'Novo Objeto'
+                  )}
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Novo Objeto do Serviço</DialogTitle>
+                  <DialogTitle>
+                    {editingId ? 'Editar Objeto do Serviço' : 'Novo Objeto do Serviço'}
+                  </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cliente</Label>
-                      <Select onValueChange={(v) => setValue("client_id", v)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cliente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockClients.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.client_id && <span className="text-destructive text-sm">{errors.client_id.message}</span>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Select value={type} onValueChange={(v) => setValue("type", v as any)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="automovel">Automóvel</SelectItem>
-                          <SelectItem value="aeronave">Aeronave</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label>{identifierLabel}</Label>
-                      <Input placeholder={identifierLabel} {...register("identifier_primary")} />
-                      {errors.identifier_primary && <span className="text-destructive text-sm">{errors.identifier_primary.message}</span>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Fabricante</Label>
-                      <Input placeholder="Ex.: Toyota, Cessna" {...register("manufacturer")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Modelo</Label>
-                      <Input placeholder="Ex.: Corolla, 172" {...register("model")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Ano</Label>
-                      <Input placeholder="Ex.: 2020" {...register("year")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cor</Label>
-                      <Input placeholder="Ex.: Prata, Branco" {...register("color")} />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label>Observações</Label>
-                      <Input placeholder="Notas adicionais" {...register("notes")} />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">Salvar</Button>
-                  </DialogFooter>
-                </form>
+                <ServiceObjectForm
+                  form={form}
+                  onSubmit={onSubmit}
+                  onCancel={handleCancelEdit}
+                  editingServiceObject={editingServiceObject}
+                  clients={clients}
+                  isLoadingClients={isLoadingClients}
+                  isSubmitting={createMutation.isPending || updateMutation.isPending}
+                />
               </DialogContent>
             </Dialog>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Identificador</TableHead>
-                    <TableHead>Modelo</TableHead>
-                    <TableHead>Ano</TableHead>
-                    <TableHead>Cor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.client_name}</TableCell>
-                      <TableCell className="capitalize">{row.type}</TableCell>
-                      <TableCell>{row.identifier_primary}</TableCell>
-                      <TableCell>{row.model || "-"}</TableCell>
-                      <TableCell>{row.year || "-"}</TableCell>
-                      <TableCell>{row.color || "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ServiceObjectsTable
+                serviceObjects={serviceObjects}
+                onEdit={handleEdit}
+                onDelete={(serviceObject) => setDeleteId(serviceObject.id)}
+                isLoading={isLoadingServiceObjects}
+              />
             </div>
           </CardContent>
         </Card>

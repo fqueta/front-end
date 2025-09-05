@@ -224,13 +224,7 @@ export function ClientForm({
                   mask="(99) 99999-9999"
                   placeholder="(00) 00000-0000"
                 />
-                <MaskedInputField
-                  name="config.telefone_comercial"
-                  control={form.control}
-                  label="Telefone"
-                  mask="(99) 99999-9999"
-                  placeholder="(00) 00000-0000"
-                />
+                
                 {form.watch('tipo_pessoa') === 'pf' && (
                   <>
                     <FormField
@@ -340,9 +334,9 @@ export function ClientForm({
                 <MaskedInputField 
                   name="config.cpf"
                   control={form.control}
-                  label="CPF"
-                  mask="999.999.999-99"
-                  placeholder="000.000.000-00"
+                  label="CEP"
+                  mask="99999-999"
+                  placeholder="00000-000"
                 />
                 <FormField
                   control={form.control}

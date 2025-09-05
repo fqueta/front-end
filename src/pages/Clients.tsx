@@ -31,6 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
 import * as z from "zod";
 import {
   Table,
@@ -81,6 +82,7 @@ import {
 } from '@/hooks/clients';
 import { ClientRecord, CreateClientInput } from '@/types/clients';
 import { ClientForm } from '@/components/clients/ClientForm';
+import { ClientsTable } from '@/components/clients/ClientsTable';
 
 // Form validation schema
 const clientSchema = z.object({
@@ -156,6 +158,7 @@ export default function Clients() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // React Query hooks for client operations
   const clientsQuery = useClientsList({
@@ -475,98 +478,13 @@ export default function Clients() {
               <p>Nenhum cliente encontrado.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Localização</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        {client.email && (
-                          <div className="flex items-center">
-                            <Mail className="h-3.5 w-3.5 mr-1 opacity-70" />
-                            <span className="text-sm">{client.email}</span>
-                          </div>
-                        )}
-                        {client.config?.celular && (
-                          <div className="flex items-center mt-1">
-                            <Phone className="h-3.5 w-3.5 mr-1 opacity-70" />
-                            <span className="text-sm">{client.config.celular}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {client.tipo_pessoa === 'pf' ? client.cpf : client.cnpj}
-                      <div className="text-xs text-muted-foreground">
-                        {client.tipo_pessoa === 'pf' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {client.config?.cidade && client.config?.uf ? (
-                        <>
-                          {client.config.cidade}, {client.config.uf}
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Não informado</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={client.ativo === 's' ? "default" : "secondary"}>
-                        {client.ativo === 's' ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Visualizar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Orçamentos
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <ClipboardList className="h-4 w-4 mr-2" />
-                            Ordens de Serviço
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleDeleteClient(client)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ClientsTable 
+              clients={filteredClients}
+              onEdit={handleEditClient}
+              onDelete={handleDeleteClient}
+              onView={(client) => navigate(`/clients/${client.id}`)}
+              isLoading={clientsQuery.isLoading}
+            />
           )}
         </CardContent>
       </Card>

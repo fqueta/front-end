@@ -1,101 +1,43 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ClientRecord, CreateClientInput, UpdateClientInput, ClientsListParams } from '@/types/clients';
 import { clientsService } from '@/services/clientsService';
-import { 
-  ClientRecord, 
-  CreateClientInput, 
-  UpdateClientInput, 
-  ClientsListParams 
-} from '@/types/clients';
-import { toast } from '@/hooks/use-toast';
+import { useGenericApi } from './useGenericApi';
 
-const CLIENTS_QUERY_KEY = 'clients';
-
-export function useClientsList(params?: ClientsListParams) {
-  return useQuery({
-    queryKey: [CLIENTS_QUERY_KEY, 'list', params],
-    queryFn: () => clientsService.listClients(params),
-    retry: (failureCount, error: any) => {
-      if (error?.status === 403) return false;
-      return failureCount < 2;
-    },
+/**
+ * Função para obter os hooks de clientes
+ */
+function getClientsApi() {
+  return useGenericApi<ClientRecord, CreateClientInput, UpdateClientInput, ClientsListParams>({
+    service: clientsService,
+    queryKey: 'clients',
+    entityName: 'Cliente'
   });
 }
 
-export function useClient(id: string) {
-  return useQuery({
-    queryKey: [CLIENTS_QUERY_KEY, 'detail', id],
-    queryFn: () => clientsService.getClient(id),
-    enabled: !!id,
-    retry: (failureCount, error: any) => {
-      if (error?.status === 403) return false;
-      return failureCount < 2;
-    },
-  });
+// Exporta os hooks individuais para manter compatibilidade
+export function useClientsList(params?: ClientsListParams, queryOptions?: any) {
+  const api = getClientsApi();
+  return api.useList(params, queryOptions);
 }
 
-export function useCreateClient() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: CreateClientInput) => clientsService.createClient(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CLIENTS_QUERY_KEY] });
-      toast({
-        title: "Cliente criado",
-        description: "O cliente foi criado com sucesso.",
-      });
-    },
-    onError: (error: Error & { status?: number }) => {
-      toast({
-        title: "Erro ao criar cliente",
-        description: error.message || "Erro desconhecido",
-        variant: "destructive",
-      });
-    },
-  });
+export function useClient(id: string, queryOptions?: any) {
+  const api = getClientsApi();
+  return api.useGetById(id, queryOptions);
 }
 
-export function useUpdateClient() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateClientInput }) => 
-      clientsService.updateClient(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CLIENTS_QUERY_KEY] });
-      toast({
-        title: "Cliente atualizado",
-        description: "O cliente foi atualizado com sucesso.",
-      });
-    },
-    onError: (error: Error & { status?: number }) => {
-      toast({
-        title: "Erro ao atualizar cliente",
-        description: error.message || "Erro desconhecido",
-        variant: "destructive",
-      });
-    },
-  });
+export function useCreateClient(mutationOptions?: any) {
+  const api = getClientsApi();
+  return api.useCreate(mutationOptions);
 }
 
-export function useDeleteClient() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => clientsService.deleteClient(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CLIENTS_QUERY_KEY] });
-      toast({
-        title: "Cliente excluído",
-        description: "O cliente foi excluído com sucesso.",
-      });
-    },
-    onError: (error: Error & { status?: number }) => {
-      toast({
-        title: "Erro ao excluir cliente",
-        description: error.message || "Erro desconhecido",
-        variant: "destructive",
-      });
-    },
-  });
+export function useUpdateClient(mutationOptions?: any) {
+  const api = getClientsApi();
+  return api.useUpdate(mutationOptions);
 }
+
+export function useDeleteClient(mutationOptions?: any) {
+  const api = getClientsApi();
+  return api.useDelete(mutationOptions);
+}
+
+// Exporta função para uso avançado
+export const useClientsApi = getClientsApi;

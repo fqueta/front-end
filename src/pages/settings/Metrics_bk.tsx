@@ -47,11 +47,10 @@ import {
   useMetricsList, 
   useCreateMetric, 
   useUpdateMetric,
-  useDeleteMetric,
+  useDeleteMetric 
 } from '@/hooks/metrics';
 import { MetricRecord, CreateMetricInput, MetricList } from '@/types/metrics';
 import { metricsService } from '@/services/metricsService';
-import { type } from 'os';
 // Schema de validação
 const metricSchema = z.object({
   period: z.string().min(1, "Período é obrigatório"), // yyyy-mm-dd
@@ -86,16 +85,7 @@ export default function Metrics() {
   const title2:string = "Gerencie as "+title1+" do sistema";
   const label1:string = 'Buscar '+title1+'...';
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  type CamposFormType = {name:string,label:string,type:string};
-  const arrCampos:CamposFormType[] = [
-    { name: "investment", label: "Investimento", type: "number" },
-    { name: "visitors", label: "Visitantes", type: "number" },
-    { name: "bot_conversations", label: "Bot", type: "number" },
-    { name: "human_conversations", label: "Humanos", type: "number" },
-    { name: "proposals", label: "Propostas", type: "number" },
-    { name: "closed_deals", label: "Fechados", type: "number" }
-  ];
-  
+
   // console.log(metricsData);
   
   // useEffect(() => {
@@ -137,25 +127,26 @@ export default function Metrics() {
   const year: number = new Date().getFullYear();
   const currentMonthNumber: number = new Date().getMonth() + 1;
   const [totalPages , setTotalPages] = useState<number>(0);
-  const [inicio, setInicio] = useState<string | Date>('');
-  const [fim, setFim] = useState<string | Date>('');
   const consult = useCallback(({type, value, inicio, fim}) => {
+    // const { data: metricsData, isLoading: isLoading2, error: error2 } = useMetricsList({
+    //   start_date: typeof inicio === 'string' ? inicio : inicio.toISOString().split('T')[0],
+    //   end_date: typeof fim === 'string' ? fim : fim.toISOString().split('T')[0]
+    // });
     metricsService.listMetrics({
       start_date: typeof inicio === 'string' ? inicio : inicio.toISOString().split('T')[0],
       end_date: typeof fim === 'string' ? fim : fim.toISOString().split('T')[0]
       }).then((res) => {
+        // console.log("Métricas retornadas:", res);
         const resAny = res as any;
-        // const totalMetrics = resAny?.totais_filtrados || [];
-        // const totalTends = resAny?.agregados?.visitas?.por_semana || [];
-        // const totalTendsConv = resAny?.agregados?.conversas?.por_semana || [];
+        const totalMetrics = resAny?.totais_filtrados || [];
+        const totalTends = resAny?.agregados?.visitas?.por_semana || [];
+        const totalTendsConv = resAny?.agregados?.conversas?.por_semana || [];
       // console.log(res);
       const totalPages = resAny?.last_page || 1;
       const registros = resAny?.registros ?? resAny?.data ?? [];
       // console.log(`registros:`,registros);      
       setMetrics(registros);
       setTotalPages(totalPages);      
-      setInicio(inicio);
-      setFim(fim);
     }).catch((error) => {
       console.error("Erro ao buscar métricas:", error);
       setError(error);
@@ -201,23 +192,20 @@ export default function Metrics() {
       } else {
         await createMutation.mutateAsync(data as CreateMetricInput);
       }
-      consult({type: selectedPeriod, value: selectedPeriod, inicio: inicio, fim: fim});
       handleCloseModal();
     } catch (error) {
       // Error is handled by the mutation hooks
     }
   };
-  
+
   const handleDelete = async () => {
     
     if (deletingMetric) {
       try {
         await deleteMutation.mutateAsync(deletingMetric.id);
         setDeletingMetric(null);
-        consult({type: selectedPeriod, value: selectedPeriod, inicio: inicio, fim: fim});
       } catch (error) {
         // Error is handled by the mutation hook
-        console.log("Erro ao excluir métrica:", error);
       }
     }
   };
@@ -270,7 +258,7 @@ export default function Metrics() {
         <div>
           <h1 className="text-3xl font-bold">{title1}</h1>
           <p className="text-muted-foreground">
-            Gerencie as {title1} das campanhas de marketing
+            Gerencie as {title1} do sistema
           </p>
         </div>
         <Button onClick={() => handleOpenModal()}>
@@ -396,7 +384,14 @@ export default function Metrics() {
                   <FormMessage />
                 </FormItem>
               )}/>
-              {arrCampos.map(({ name, label, type }) => (
+              {[
+                { name: "investment", label: "Investimento", type: "number" },
+                { name: "visitors", label: "Visitantes", type: "number" },
+                { name: "bot_conversations", label: "Bot", type: "number" },
+                { name: "human_conversations", label: "Humanos", type: "number" },
+                { name: "proposals", label: "Propostas", type: "number" },
+                { name: "closed_deals", label: "Fechados", type: "number" }
+              ].map(({ name, label, type }) => (
                 <FormField key={name} control={form.control} name={name as keyof MetricFormData} render={({ field }) => (
                   <FormItem>
                     <FormLabel>{label}</FormLabel>

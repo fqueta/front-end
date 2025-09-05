@@ -35,13 +35,13 @@ export function useCreateMetric() {
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
       toast({
         title: "Sucesso",
-        description: "Permissão criada com sucesso",
+        description: "Mátrica criada com sucesso",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar permissão",
+        description: error.message || "Erro ao criar Mátrica",
         variant: "destructive",
       });
     },
@@ -59,13 +59,13 @@ export function useUpdateMetric() {
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
       toast({
         title: "Sucesso",
-        description: "Permissão atualizada com sucesso",
+        description: "Mátrica atualizada com sucesso",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar permissão",
+        description: error.message || "Erro ao atualizar Mátrica",
         variant: "destructive",
       });
     },
@@ -82,15 +82,27 @@ export function useDeleteMetric() {
       queryClient.invalidateQueries({ queryKey: ['metrics'] });
       toast({
         title: "Sucesso",
-        description: "Permissão excluída com sucesso",
+        description: "Mátrica excluída com sucesso",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao excluir permissão",
+        description: error.message || "Erro ao excluir Mátrica",
         variant: "destructive",
       });
     },
   });
 }
+// export function CamposForm() {
+//   const arr = [
+//     { name: "investment", label: "Investimento", type: "number" },
+//     { name: "visitors", label: "Visitantes", type: "number" },
+//     { name: "bot_conversations", label: "Bot", type: "number" },
+//     { name: "human_conversations", label: "Humanos", type: "number" },
+//     { name: "proposals", label: "Propostas", type: "number" },
+//     { name: "closed_deals", label: "Fechados", type: "number" }
+//   ];
+//   console.log('CamposForm',arr);
+//   return arr;
+// }
