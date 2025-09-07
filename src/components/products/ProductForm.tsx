@@ -36,13 +36,15 @@ const productSchema = z.object({
 export type ProductFormData = z.infer<typeof productSchema>;
 
 interface Category {
-  id: string;
-  name: string;
+  id?: string | number;
+  name?: string;
 }
 
 interface Unit {
-  id: string;
-  name: string;
+  id?: number;
+  name?: string;
+  label?: string;
+  value?: string;
 }
 
 interface ProductFormProps {
@@ -72,6 +74,7 @@ export default function ProductForm({
   onCancel,
   isEditing
 }: ProductFormProps) {
+  // console.log('categories', categories);
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -135,7 +138,7 @@ export default function ProductForm({
                       </div>
                     ) : (
                       categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
+                        <SelectItem key={category.id} value={String(category.id)}>
                           {category.name}
                         </SelectItem>
                       ))
@@ -174,8 +177,8 @@ export default function ProductForm({
                       </div>
                     ) : (
                       units.map((unit) => (
-                        <SelectItem key={unit.id} value={unit.name}>
-                          {unit.name}
+                        <SelectItem key={unit.id} value={String(unit.id)}>
+                          {unit.label}
                         </SelectItem>
                       ))
                     )}

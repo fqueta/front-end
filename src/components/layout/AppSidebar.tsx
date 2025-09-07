@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { buildMenuFromDTO, filterMenuByViewAccess } from "@/lib/menu";
+import { buildMenuFromDTO, filterMenuByViewAccess, defaultMenu } from "@/lib/menu";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -33,10 +33,10 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
 
-  // Build menu from API data only (auth_menu from localStorage)
+  // Build menu from API data or use default menu
   const baseMenu = apiMenu && apiMenu.length > 0 
     ? buildMenuFromDTO(apiMenu) 
-    : [];
+    : buildMenuFromDTO(defaultMenu);
 
   // Filter by can_view access
   const menuItems = filterMenuByViewAccess(baseMenu);

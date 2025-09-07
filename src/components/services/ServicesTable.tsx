@@ -27,52 +27,84 @@ import {
   Edit, 
   Trash2, 
   Eye,
-  Package,
-  AlertTriangle
+  Wrench,
+  AlertTriangle,
+  Clock
 } from "lucide-react";
-import type { Product } from "@/types/products";
+import type { Service } from "@/types/services";
+import { SKILL_LEVELS } from "@/types/services";
 
-interface ProductsTableProps {
-  products: Product[];
+interface ServicesTableProps {
+  services: Service[];
   isLoading: boolean;
   error: any;
-  onNewProduct: () => void;
-  onEditProduct: (product: Product) => void;
-  onDeleteProduct: (product: Product) => void;
+  onNewService: () => void;
+  onEditService: (service: Service) => void;
+  onDeleteService: (service: Service) => void;
   onRefetch: () => void;
 }
 
-export default function ProductsTable({
-  products,
+/**
+ * Componente de tabela para listagem e gerenciamento de serviços
+ * Inclui funcionalidades de busca, filtros e ações CRUD
+ */
+export default function ServicesTable({
+  services,
   isLoading,
   error,
-  onNewProduct,
-  onEditProduct,
-  onDeleteProduct,
+  onNewService,
+  onEditService,
+  onDeleteService,
   onRefetch
-}: ProductsTableProps) {
+}: ServicesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   /**
-   * Navega para a página de visualização do produto
+   * Navega para a página de visualização do serviço
    */
-  const handleViewProduct = (product: Product) => {
-    navigate(`/products/${product.id}`);
+  const handleViewService = (service: Service) => {
+    navigate(`/services/${service.id}`);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+  /**
+   * Obtém o label do nível de habilidade
+   */
+  const getSkillLevelLabel = (skillLevel: string) => {
+    const level = SKILL_LEVELS.find(level => level.value === skillLevel);
+    return level?.label || skillLevel;
+  };
+
+  /**
+   * Obtém a cor do badge baseado no nível de habilidade
+   */
+  const getSkillLevelVariant = (skillLevel: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (skillLevel) {
+      case 'basic':
+        return 'secondary';
+      case 'intermediate':
+        return 'outline';
+      case 'advanced':
+        return 'default';
+      case 'expert':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  const filteredServices = services.filter(service =>
+    service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    service.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (service.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lista de Produtos</CardTitle>
+        <CardTitle>Lista de Serviços</CardTitle>
         <CardDescription>
-          Visualize e gerencie todos os produtos cadastrados
+          Visualize e gerencie todos os serviços cadastrados
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -80,7 +112,7 @@ export default function ProductsTable({
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar produtos..."
+              placeholder="Buscar serviços..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -92,11 +124,12 @@ export default function ProductsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Produto</TableHead>
+                <TableHead>Serviço</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Preços</TableHead>
-                <TableHead>Estoque</TableHead>
-                <TableHead>Margem</TableHead>
+                <TableHead>Preço</TableHead>
+                <TableHead>Duração</TableHead>
+                <TableHead>Nível</TableHead>
+                <TableHead>Materiais</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -104,20 +137,20 @@ export default function ProductsTable({
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex items-center justify-center space-x-2">
-                      <Package className="h-4 w-4 animate-spin" />
-                      <span>Carregando produtos...</span>
+                      <Wrench className="h-4 w-4 animate-spin" />
+                      <span>Carregando serviços...</span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : error ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-destructive">
                       <AlertTriangle className="h-8 w-8" />
                       <div>
-                        <p className="font-medium">Erro ao carregar produtos</p>
+                        <p className="font-medium">Erro ao carregar serviços</p>
                         <p className="text-sm text-muted-foreground">
                           {error?.message || 'Não foi possível conectar com o servidor'}
                         </p>
@@ -133,82 +166,78 @@ export default function ProductsTable({
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : !products || products.length === 0 ? (
+              ) : !services || services.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
-                      <Package className="h-8 w-8" />
+                      <Wrench className="h-8 w-8" />
                       <div>
-                        <p className="font-medium">Nenhum produto cadastrado</p>
-                        <p className="text-sm">Comece criando seu primeiro produto</p>
+                        <p className="font-medium">Nenhum serviço cadastrado</p>
+                        <p className="text-sm">Comece criando seu primeiro serviço</p>
                       </div>
                       <Button 
-                        onClick={onNewProduct}
+                        onClick={onNewService}
                         size="sm"
                         className="mt-2"
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Criar produto
+                        Criar serviço
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredProducts.length === 0 ? (
+              ) : filteredServices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center space-y-2 text-muted-foreground">
                       <Search className="h-8 w-8" />
                       <div>
-                        <p className="font-medium">Nenhum produto encontrado</p>
+                        <p className="font-medium">Nenhum serviço encontrado</p>
                         <p className="text-sm">Tente ajustar os filtros de busca</p>
                       </div>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+                filteredServices.map((service) => (
+                  <TableRow key={service.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{product.name}</div>
+                        <div className="font-medium">{service.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {product.description}
+                          {service.description}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{product.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium">
-                          Venda: R$ {product.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Custo: R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className={`text-sm font-medium ${product.stock <= 10 ? 'text-destructive' : ''}`}>
-                          {product.stock} {product.unit}
-                        </div>
-                        {product.stock <= 10 && (
-                          <div className="text-xs text-destructive">
-                            Estoque baixo
-                          </div>
-                        )}
-                      </div>
+                      <Badge variant="outline">{service.category}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">
-                        {Math.round(((product.salePrice - product.costPrice) / product.salePrice) * 100)}%
+                        R$ {service.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={product.active ? "default" : "secondary"}>
-                        {product.active ? "Ativo" : "Inativo"}
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">
+                          {service.estimatedDuration} {service.unit}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getSkillLevelVariant(service.skillLevel)}>
+                        {getSkillLevelLabel(service.skillLevel)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={service.requiresMaterials ? "default" : "secondary"}>
+                        {service.requiresMaterials ? "Sim" : "Não"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={service.active ? "default" : "secondary"}>
+                        {service.active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -221,18 +250,18 @@ export default function ProductsTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleViewProduct(product)}>
+                          <DropdownMenuItem onClick={() => handleViewService(service)}>
                             <Eye className="mr-2 h-4 w-4" />
                             Visualizar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEditProduct(product)}>
+                          <DropdownMenuItem onClick={() => onEditService(service)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             className="text-destructive"
-                            onClick={() => onDeleteProduct(product)}
+                            onClick={() => onDeleteService(service)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir

@@ -14,6 +14,9 @@ import ServiceObjects from "./pages/ServiceObjects";
 import Aircraft from "./pages/Aircraft";
 import AircraftView from "./pages/AircraftView";
 import Products from "./pages/Products";
+import ProductView from "./pages/ProductView";
+import Services from "./pages/Services";
+import ServiceView from "./pages/ServiceView";
 import Categories from "./pages/Categories";
 import Permissions from "./pages/settings/Permissions";
 import Users from "./pages/settings/Users";
@@ -104,6 +107,27 @@ const App = () => {
                 <ProtectedRoute>
                   <AppLayout>
                     <Products />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/products/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ProductView />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/services" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Services />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/services/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ServiceView />
                   </AppLayout>
                 </ProtectedRoute>
               } />
