@@ -101,7 +101,7 @@ class ServicesService extends BaseApiService {
   }
 
   async delete(id: string): Promise<void> {
-    return this.deleteService(id);
+    await super.delete(`${this.endpoint}/${id}`);
   }
 }
 

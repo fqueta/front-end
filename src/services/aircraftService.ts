@@ -14,7 +14,12 @@ class AircraftService extends BaseApiService {
    * @param params - Parâmetros de filtro e paginação
    */
   async listAircraft(params?: AircraftListParams): Promise<PaginatedResponse<Aircraft>> {
-    const response = await this.get<any>(this.endpoint, params);
+    // Adiciona o parâmetro include para carregar o relacionamento com o cliente
+    const queryParams = {
+      ...params,
+      include: 'client'
+    };
+    const response = await this.get<any>(this.endpoint, queryParams);
     return this.normalizePaginatedResponse<Aircraft>(response);
   }
 
@@ -23,7 +28,7 @@ class AircraftService extends BaseApiService {
    * @param id - ID da aeronave
    */
   async getAircraft(id: string): Promise<Aircraft> {
-    const response = await this.get<ApiResponse<Aircraft>>(`${this.endpoint}/${id}`);
+    const response = await this.get<ApiResponse<Aircraft>>(`${this.endpoint}/${id}`, { include: 'client' });
     return response.data;
   }
 

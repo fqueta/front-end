@@ -139,7 +139,7 @@ export default function ServiceForm({
                     categories.map((category) => (
                       <SelectItem
                         key={category.id || category.name}
-                        value={category.name || `category_${category.id}`}
+                        value={String(category.id) || `category_${category.id}`}
                       >
                         {category.name}
                       </SelectItem>

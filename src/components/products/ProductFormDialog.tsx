@@ -17,7 +17,9 @@ interface ProductFormDialogProps {
   onSubmit: (data: ProductFormData) => void;
   isSubmitting: boolean;
   categories: Category[];
+  categoryData?: Category[];
   units: Unit[];
+  unitData?: Unit[];
   isLoadingCategories: boolean;
   isLoadingUnits: boolean;
   categoriesError: any;

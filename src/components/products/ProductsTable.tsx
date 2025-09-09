@@ -177,7 +177,7 @@ export default function ProductsTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{product.category}</Badge>
+                      <Badge variant="outline">{product.categoryData.name}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">

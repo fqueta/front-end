@@ -98,7 +98,7 @@ class ProductsService extends BaseApiService {
   }
 
   async delete(id: string): Promise<void> {
-    return this.deleteProduct(id);
+    await super.delete(`${this.endpoint}/${id}`);
   }
 }
 

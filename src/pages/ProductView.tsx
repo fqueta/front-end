@@ -14,8 +14,9 @@ import type { Product } from '@/types/products';
 export default function ProductView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: product, isLoading, error } = useProduct(id!);
-
+  const { data: productData, isLoading, error } = useProduct(id!);
+  const product = productData as any;
+  
   /**
    * Navega de volta para a listagem de produtos
    */
@@ -91,7 +92,7 @@ export default function ProductView() {
       </div>
     );
   }
-
+  
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -174,12 +175,12 @@ export default function ProductView() {
                   <Tag className="h-4 w-4" />
                   Categoria
                 </label>
-                <Badge variant="outline" className="mt-1">{product.category}</Badge>
+                <Badge variant="outline" className="mt-1">{product.categoryData.name}</Badge>
               </div>
               
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Unidade</label>
-                <p className="text-sm font-medium">{product.unit}</p>
+                <p className="text-sm font-medium">{product.unitData.name}</p>
               </div>
             </div>
           </CardContent>

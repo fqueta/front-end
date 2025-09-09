@@ -47,10 +47,15 @@ export abstract class BaseApiService {
       } catch {
         // ignore json parse errors
       }
-      const error = new Error(errorMessage) as Error & { status?: number; body?: any };
-      error.status = response.status;
-      error.body = errorBody;
-      throw error;
+      // console.log('errorMessage:', errorMessage);
+      // console.log('errorBody:', errorBody);
+      // const error = new Error(errorMessage) as Error & { status?: number; body?: any };
+      // error.status = response.status;
+      // // error.message = response.message;
+      // error.body = errorBody;
+      // console.log('error:', error);
+      
+      throw errorBody;
     }
     return response.json();
   }

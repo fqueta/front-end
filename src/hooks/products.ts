@@ -17,7 +17,22 @@ function getProductsApi() {
 // Exporta os hooks individuais para manter compatibilidade
 export function useProductsList(params?: ProductListParams, queryOptions?: any) {
   const api = getProductsApi();
-  return api.useList(params, queryOptions);
+  // Configurações específicas para prevenir loops infinitos em listas vazias
+  const safeQueryOptions = {
+    retry: (failureCount: number, error: any) => {
+      // Não tenta novamente para listas vazias (404) ou erros de cliente
+      if (error?.status === 404 || (error?.status >= 400 && error?.status < 500)) {
+        return false;
+      }
+      return failureCount < 1;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutos para listas
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    ...queryOptions
+  };
+  return api.useList(params, safeQueryOptions);
 }
 
 export function useProduct(id: string, queryOptions?: any) {
@@ -45,7 +60,14 @@ export function useProductCategories() {
   return useQuery({
     queryKey: ['product-categories'],
     queryFn: () => productsService.getCategories(),
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    retry: (failureCount: number, error: any) => {
+      // Não tenta novamente para erros de cliente
+      if (error?.status >= 400 && error?.status < 500) return false;
+      return failureCount < 1;
+    },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

@@ -61,7 +61,8 @@ export default function Services() {
   const { data: units = [], isLoading: isLoadingUnits, error: unitsError } = useServiceUnits();
 
   // Extrai os serviços da resposta paginada
-  const services = Array.isArray(servicesData) ? servicesData : servicesData?.data || [];
+  const anyService =  servicesData as any;
+  const services = Array.isArray(anyService) ? anyService : anyService?.data || [];
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),

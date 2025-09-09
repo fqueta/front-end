@@ -74,6 +74,7 @@ const ServiceObjects = () => {
    * Função para iniciar a edição de um objeto
    */
   const handleEdit = (serviceObject: ServiceObjectRecord) => {
+    const anyServiceObject = serviceObject as any;
     setEditingId(serviceObject.id);
     form.setValue('client_id', serviceObject.client_id);
     form.setValue('type', serviceObject.type);
@@ -84,7 +85,7 @@ const ServiceObjects = () => {
     form.setValue('identifier_primary', primaryIdentifier);
     form.setValue('manufacturer', serviceObject.manufacturer || '');
     form.setValue('model', serviceObject.model || '');
-    form.setValue('year', serviceObject.year ? serviceObject.year.toString() : '');
+    form.setValue('year', anyServiceObject.year ? anyServiceObject.year.toString() : '');
     form.setValue('color', serviceObject.color || '');
     form.setValue('notes', serviceObject.notes || '');
     setOpen(true);

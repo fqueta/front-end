@@ -28,13 +28,45 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PermissionGuard } from "./components/auth/PermissionGuard";
 import Dashboard2 from "./pages/Dashboard2";
+import ServiceOrders from "./pages/ServiceOrders";
+import CreateServiceOrder from "./pages/CreateServiceOrder";
+import UpdateServiceOrder from "./pages/UpdateServiceOrder";
+import ShowServiceOrder from "./pages/ShowServiceOrder";
 
 console.log('App.tsx: Starting app initialization');
 console.log('QueryClient available:', QueryClient);
 console.log('QueryClientProvider available:', QueryClientProvider);
 
-const queryClient = new QueryClient();
-console.log('QueryClient instance created:', queryClient);
+// Configuração do QueryClient com opções de segurança para prevenir loops infinitos
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Previne loops infinitos limitando tentativas de retry
+      retry: (failureCount, error: any) => {
+        // Não tenta novamente para erros 4xx (cliente) ou se já tentou 2 vezes
+        if (error?.status >= 400 && error?.status < 500) return false;
+        return failureCount < 2;
+      },
+      // Tempo que os dados ficam "frescos" antes de serem considerados obsoletos
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      // Tempo que os dados ficam em cache antes de serem removidos
+      gcTime: 30 * 60 * 1000, // 30 minutos (anteriormente cacheTime)
+      // Desabilita refetch automático quando a janela ganha foco
+      refetchOnWindowFocus: false,
+      // Desabilita refetch automático quando reconecta à internet
+      refetchOnReconnect: false,
+      // Intervalo de refetch automático (desabilitado)
+      refetchInterval: false,
+      // Configurações específicas para prevenir loops em listas vazias
+      refetchOnMount: true,
+    },
+    mutations: {
+      // Configurações para mutações (create, update, delete)
+      retry: 1,
+    },
+  },
+});
+console.log('QueryClient instance created with security configurations:', queryClient);
 
 const App = () => {
   console.log('App component rendering');
@@ -172,6 +204,36 @@ const App = () => {
                 </AppLayout>
               </ProtectedRoute>
             } />
+              
+              {/* Rotas de Ordens de Serviço */}
+              <Route path="/service-orders" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ServiceOrders />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/service-orders/create" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CreateServiceOrder />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/service-orders/update/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <UpdateServiceOrder />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/service-orders/show/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ShowServiceOrder />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
