@@ -5,9 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserPrefsProvider } from "./contexts/UserPrefsContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
-import Dashboard from "./pages/Dashboard";
+// import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientView from "./pages/ClientView";
 import ServiceObjects from "./pages/ServiceObjects";
@@ -20,6 +21,7 @@ import ServiceView from "./pages/ServiceView";
 import Categories from "./pages/Categories";
 import Permissions from "./pages/settings/Permissions";
 import Users from "./pages/settings/Users";
+import SystemSettings from "./pages/settings/SystemSettings";
 import Login from "./pages/auth/Login";
 import Metrics from "./pages/settings/Metrics";
 import Register from "./pages/auth/Register";
@@ -27,15 +29,16 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PermissionGuard } from "./components/auth/PermissionGuard";
-import Dashboard2 from "./pages/Dashboard2";
+import Dashboard2 from "./pages/Dashboard";
 import ServiceOrders from "./pages/ServiceOrders";
 import CreateServiceOrder from "./pages/CreateServiceOrder";
 import UpdateServiceOrder from "./pages/UpdateServiceOrder";
 import ShowServiceOrder from "./pages/ShowServiceOrder";
+import QuickCreateServiceOrder from "./pages/QuickCreateServiceOrder";
 
-console.log('App.tsx: Starting app initialization');
-console.log('QueryClient available:', QueryClient);
-console.log('QueryClientProvider available:', QueryClientProvider);
+// console.log('App.tsx: Starting app initialization');
+// console.log('QueryClient available:', QueryClient);
+// console.log('QueryClientProvider available:', QueryClientProvider);
 
 // Configuração do QueryClient com opções de segurança para prevenir loops infinitos
 const queryClient = new QueryClient({
@@ -72,11 +75,12 @@ const App = () => {
   console.log('App component rendering');
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <UserPrefsProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
+      <ThemeProvider>
+        <AuthProvider>
+          <UserPrefsProvider>
+            <TooltipProvider>
+            <Toaster />
+            <Sonner />
           <BrowserRouter>
             <Routes>
               {/* Rotas públicas */}
@@ -89,17 +93,18 @@ const App = () => {
               <Route path="/" element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <Dashboard />
+                    <Dashboard2 />
+                    {/* <Dashboard /> */}
                   </AppLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/painel2" element={
+              {/* <Route path="/painel2" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <Dashboard2 />
                   </AppLayout>
                 </ProtectedRoute>
-              } />
+              } /> */}
               <Route path="/clients" element={
                 <ProtectedRoute>
                   <AppLayout>
@@ -204,12 +209,32 @@ const App = () => {
                 </AppLayout>
               </ProtectedRoute>
             } />
+              <Route path="/settings/system" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="settings.system.view" 
+                      menuPath="/settings/system"
+                      requireRemote={false}
+                    >
+                      <SystemSettings />
+                    </PermissionGuard>
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               
               {/* Rotas de Ordens de Serviço */}
               <Route path="/service-orders" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <ServiceOrders />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/service-orders/quick-create" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <QuickCreateServiceOrder />
                   </AppLayout>
                 </ProtectedRoute>
               } />
@@ -239,9 +264,10 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-          </TooltipProvider>
-        </UserPrefsProvider>
-      </AuthProvider>
+            </TooltipProvider>
+          </UserPrefsProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

@@ -93,10 +93,12 @@ export default function ServiceOrderDetails({
       currency: 'BRL'
     }).format(value);
   };
-
+  // console.log('serviceOrder:', serviceOrder);
+  // console.log('item:', serviceOrder.services);
+  
   // Calcula totais
-  const servicesTotal = serviceOrder.services?.reduce((sum, item) => sum + item.total_price, 0) || 0;
-  const productsTotal = serviceOrder.products?.reduce((sum, item) => sum + item.total_price, 0) || 0;
+  const servicesTotal = serviceOrder.services?.reduce((sum, item) => sum + Number(item.total_price), 0) || 0;
+  const productsTotal = serviceOrder.products?.reduce((sum, item) => sum + Number(item.total_price), 0) || 0;
   const totalAmount = servicesTotal + productsTotal;
 
   const statusConfig = getStatusConfig(serviceOrder.status);
@@ -124,16 +126,17 @@ export default function ServiceOrderDetails({
       </div>
     );
   }
-
+  // console.log('serviceOrder:', serviceOrder);
+  
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold">{serviceOrder.title}</h1>
-          <p className="text-gray-600">Ordem #{serviceOrder.id.slice(-8).toUpperCase()}</p>
+          <p className="text-gray-600">Ordem #{String(serviceOrder.id).slice(-8).toUpperCase()}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 no-print">
           {onPrint && (
             <Button variant="outline" size="sm" onClick={onPrint}>
               <Printer className="h-4 w-4 mr-2" />

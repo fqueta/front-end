@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,6 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { 
   ArrowLeft, 
@@ -15,8 +21,26 @@ import {
   RefreshCw,
   Printer,
   Download,
-  Copy
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  User,
+  Plane,
+  Mail,
+  Phone,
+  MapPin,
+  FileText,
+  Calendar,
+  
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +57,8 @@ import {
   useServiceOrder,
   useDeleteServiceOrder
 } from "@/hooks/serviceOrders";
-import { useState } from "react";
+import "@/styles/print.css";
+import { object } from "zod";
 
 /**
  * Página de visualização detalhada de uma ordem de serviço
@@ -46,12 +71,12 @@ export default function ShowServiceOrder() {
   
   // Hook para buscar ordem de serviço
   const {
-    data: serviceOrder,
+    data: serviceOrderIni,
     isLoading,
     error,
     refetch
   } = useServiceOrder(id!);
-  
+  const serviceOrder = serviceOrderIni as any;
   // Hook para excluir ordem de serviço
   const deleteServiceOrderMutation = useDeleteServiceOrder();
 
@@ -101,6 +126,31 @@ export default function ShowServiceOrder() {
   // Simula download (pode ser implementado com geração de PDF)
   const handleDownload = () => {
     toast.info("Funcionalidade de download será implementada em breve.");
+  };
+
+  // Duplica a ordem de serviço
+  const handleDuplicate = () => {
+    if (!serviceOrder) return;
+    
+    // Navega para a página de criação passando os dados da ordem atual
+    navigate('/service-orders/create', {
+      state: {
+        duplicateData: {
+          title: serviceOrder.title,
+          description: serviceOrder.description,
+          client_id: serviceOrder.client_id,
+          aircraft_id: serviceOrder.aircraft_id,
+          priority: serviceOrder.priority,
+          notes: serviceOrder.notes,
+          internal_notes: serviceOrder.internal_notes,
+          assigned_to: serviceOrder.assigned_to,
+          services: serviceOrder.services || [],
+          products: serviceOrder.products || []
+        }
+      }
+    });
+    
+    toast.success("Redirecionando para criar nova ordem com dados copiados...");
   };
 
   // Verifica se o ID é válido
@@ -207,7 +257,7 @@ export default function ShowServiceOrder() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Cabeçalho */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 print-header">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -221,7 +271,7 @@ export default function ShowServiceOrder() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{serviceOrder.title}</h1>
             <div className="flex items-center gap-2 text-gray-600">
-              <span>Ordem #{serviceOrder.id.slice(-8).toUpperCase()}</span>
+              <span>Ordem #{String(serviceOrder.id).slice(-8).toUpperCase()}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -234,7 +284,7 @@ export default function ShowServiceOrder() {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 no-print service-order-actions">
           <Button
             variant="outline"
             size="sm"
@@ -323,8 +373,21 @@ export default function ShowServiceOrder() {
         isLoading={false}
       />
 
+      {/* Informações Detalhadas - Cliente e Aeronave */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Card de Informações do Cliente */}
+        {serviceOrder.client && (
+          <ClientDetailsCard client={serviceOrder.client} />
+        )}
+        
+        {/* Card de Informações da Aeronave */}
+        {serviceOrder.aircraft && (
+          <AircraftDetailsCard aircraft={serviceOrder.aircraft} />
+        )}
+      </div>
+
       {/* Ações Rápidas */}
-      <Card>
+      <Card className="no-print quick-actions-card">
         <CardHeader>
           <CardTitle>Ações Rápidas</CardTitle>
           <CardDescription>
@@ -348,7 +411,7 @@ export default function ShowServiceOrder() {
             <Button
               variant="outline"
               className="h-auto p-4 flex flex-col items-center gap-2"
-              onClick={() => navigate(`/service-orders/create`)}
+              onClick={handleDuplicate}
             >
               <Copy className="h-6 w-6" />
               <div className="text-center">
@@ -373,7 +436,7 @@ export default function ShowServiceOrder() {
       </Card>
 
       {/* Histórico (placeholder para futura implementação) */}
-      <Card>
+      <Card className="no-print history-card">
         <CardHeader>
           <CardTitle>Histórico de Alterações</CardTitle>
           <CardDescription>
@@ -387,5 +450,331 @@ export default function ShowServiceOrder() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Componente para exibir informações detalhadas do cliente
+ */
+function ClientDetailsCard({ client }: { client: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    try {
+      return new Date(dateString).toLocaleDateString('pt-BR');
+    } catch {
+      return "-";
+    }
+  };
+
+  const formatPhone = (phone: string) => {
+    if (!phone) return "-";
+    // Remove caracteres não numéricos
+    const cleaned = phone.replace(/\D/g, '');
+    // Formata como (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+    if (cleaned.length === 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    } else if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    }
+    return phone;
+  };
+
+  return (
+    <Card>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Informações do Cliente</CardTitle>
+                  <CardDescription>
+                    {client.name} • {client.tipo_pessoa === 'pf' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                  </CardDescription>
+                </div>
+              </div>
+              {isOpen ? (
+                <ChevronUp className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Informações Básicas */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-gray-900 mb-3">Dados Básicos</h4>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">Email:</span>
+                  <span>{client.email || "-"}</span>
+                </div>
+                
+                {client.tipo_pessoa === 'pf' ? (
+                  <>
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">CPF:</span>
+                      <span>{client.cpf || "-"}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">RG:</span>
+                      <span>{client.config?.rg || "-"}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Nascimento:</span>
+                      <span>{formatDate(client.config?.nascimento)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Gênero:</span>
+                      <span>
+                        {client.genero === 'm' ? 'Masculino' : 
+                         client.genero === 'f' ? 'Feminino' : 'Não informado'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">CNPJ:</span>
+                      <span>{client.cnpj || "-"}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Razão Social:</span>
+                      <span>{client.razao || "-"}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Nome Fantasia:</span>
+                      <span>{client.config?.nome_fantasia || "-"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Contato e Endereço */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-gray-900 mb-3">Contato & Endereço</h4>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">Celular:</span>
+                  <span>{formatPhone(client.config?.celular)}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">Tel. Residencial:</span>
+                  <span>{formatPhone(client.config?.telefone_residencial)}</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">Tel. Comercial:</span>
+                  <span>{formatPhone(client.config?.telefone_comercial)}</span>
+                </div>
+                
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <div>
+                    <span className="text-gray-600">Endereço:</span>
+                    <div className="mt-1">
+                      {client.config?.endereco && (
+                        <div>{client.config.endereco}, {client.config?.numero}</div>
+                      )}
+                      {client.config?.complemento && (
+                        <div>{client.config.complemento}</div>
+                      )}
+                      {client.config?.bairro && (
+                        <div>{client.config.bairro}</div>
+                      )}
+                      {client.config?.cidade && client.config?.uf && (
+                        <div>{client.config.cidade} - {client.config.uf}</div>
+                      )}
+                      {client.config?.cep && (
+                        <div>CEP: {client.config.cep}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {client.config?.observacoes && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
+                    <div>
+                      <span className="text-gray-600">Observações:</span>
+                      <div className="mt-1 text-gray-800">{client.config.observacoes}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
+
+/**
+ * Componente para exibir informações detalhadas da aeronave
+ */
+function AircraftDetailsCard({ aircraft }: { aircraft: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    try {
+      return new Date(dateString).toLocaleDateString('pt-BR');
+    } catch {
+      return "-";
+    }
+  };
+  const rab = aircraft?.rab as any;
+// console.log('aircraft',aircraft);
+
+  return (
+    <Card>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Plane className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Informações da Aeronave</CardTitle>
+                  <CardDescription>
+                    {aircraft.matricula} • {aircraft.active ? 'Ativa' : 'Inativa'}
+                  </CardDescription>
+                </div>
+              </div>
+              {isOpen ? (
+                <ChevronUp className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            <div className="space-y-4">
+              {/* Informações Básicas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-gray-900 mb-3">Dados da Aeronave</h4>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Plane className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-600">Matrícula:</span>
+                    <span className="font-medium">{aircraft.matricula}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-600">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      aircraft.active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {aircraft.active ? 'Ativa' : 'Inativa'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-600">Cadastrada em:</span>
+                    <span>{formatDate(aircraft.created_at)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-600">Última atualização:</span>
+                    <span>{formatDate(aircraft.updated_at)}</span>
+                  </div>
+                </div>                
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-gray-900 mb-3">Detalhes Técnicos</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Detalhes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rab && Object.keys(rab).map((key) => (
+                        <TableRow key={key}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
+                              {key}
+                            </div>
+                          </TableCell>
+                          <TableCell>{rab[key]}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {/* {rab && Object.keys(rab).map((key) => (
+                    <div className="flex items-start gap-2 text-sm" key={key}>
+                      <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600">{key}:</span>
+                        <div className="mt-1 text-gray-800">{rab[key]}</div>
+                      </div>
+                    </div>
+                  ))} */}
+                  
+                  {aircraft.description && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="text-gray-600">Descrição:</span>
+                        <div className="mt-1 text-gray-800">{aircraft.description}</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {aircraft.client && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600">Proprietário:</span>
+                      <span>{aircraft.client.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>            
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }

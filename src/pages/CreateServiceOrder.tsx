@@ -1,6 +1,7 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,6 +18,7 @@ import {
   useCreateServiceOrder,
   useServiceOrderFormData
 } from "@/hooks/serviceOrders";
+import { useQueryClient } from "@tanstack/react-query";
 import { ServiceOrderServiceItem, ServiceOrderProductItem } from "@/types/serviceOrders";
 
 /**
@@ -25,9 +27,22 @@ import { ServiceOrderServiceItem, ServiceOrderProductItem } from "@/types/servic
  */
 export default function CreateServiceOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
   
   // Hook para criar ordem de serviço
   const createServiceOrderMutation = useCreateServiceOrder();
+  
+  // Dados da ordem a ser duplicada (se houver)
+  const duplicateData = location.state?.duplicateData;
+  
+  // Dados do cadastro rápido (se houver)
+  const quickCreateData = useMemo(() => {
+    return location.state?.quickCreate ? {
+      clientId: location.state?.clientId,
+      aircraftId: location.state?.aircraftId
+    } : null;
+  }, [location.state?.quickCreate, location.state?.clientId, location.state?.aircraftId]);
   
   // Hook para dados do formulário (clientes, usuários, aeronaves, serviços, produtos)
   const {
@@ -57,10 +72,11 @@ export default function CreateServiceOrder() {
   const form = useForm<ServiceOrderFormData>({
     resolver: zodResolver(serviceOrderSchema),
     defaultValues: {
+      doc_type: "os",
       title: "",
       description: "",
-      client_id: "",
-      aircraft_id: "",
+      client_id: quickCreateData?.clientId || "",
+      aircraft_id: quickCreateData?.aircraftId || "",
       status: "draft",
       priority: "medium",
       estimated_start_date: "",
@@ -70,6 +86,39 @@ export default function CreateServiceOrder() {
       assigned_to: ""
     }
   });
+
+  // Preenche o formulário com dados da ordem a ser duplicada
+  useEffect(() => {
+    if (duplicateData) {
+      form.reset({
+        title: `Cópia de ${duplicateData.title}`,
+        description: duplicateData.description || "",
+        client_id: duplicateData.client_id || "",
+        aircraft_id: duplicateData.aircraft_id || "",
+        status: "draft", // Sempre inicia como rascunho
+        priority: duplicateData.priority || "medium",
+        estimated_start_date: "", // Limpa as datas
+        estimated_end_date: "",
+        notes: duplicateData.notes || "",
+        internal_notes: duplicateData.internal_notes || "",
+        assigned_to: duplicateData.assigned_to || ""
+      });
+      
+      toast.info("Dados da ordem original carregados. Revise as informações antes de salvar.");
+    }
+  }, [duplicateData, form]);
+
+  // Preenche o formulário com dados do cadastro rápido
+  useEffect(() => {
+    if (quickCreateData) {
+      form.setValue("client_id", quickCreateData.clientId || "");
+      form.setValue("aircraft_id", quickCreateData.aircraftId || "");
+      console.log('aircraft',aircraft);      
+      const title = `O.S. - ${quickCreateData.matricula} - ${quickCreateData.aircraftId}`;
+      form.setValue("title", title);
+      toast.success("Cliente e aeronave selecionados automaticamente! Agora preencha os demais dados da ordem de serviço.");
+    }
+  }, [quickCreateData]);
 
   // Submete o formulário
   const handleSubmit = async (data_submit: ServiceOrderFormData & { 
@@ -145,6 +194,27 @@ export default function CreateServiceOrder() {
   const handleBack = () => {
     navigate("/service-orders");
   };
+
+  // Callback para quando um serviço é criado via cadastro rápido
+  const handleServiceCreated = () => {
+    // Invalida o cache das queries de serviços para atualizar as listas
+    queryClient.invalidateQueries({ queryKey: ['search-services'] });
+    queryClient.invalidateQueries({ queryKey: ['services'] });
+  };
+
+  // Callback para quando um produto é criado via cadastro rápido
+  const handleProductCreated = () => {
+    // Invalida o cache das queries de produtos para atualizar as listas
+    queryClient.invalidateQueries({ queryKey: ['search-products'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+  };
+
+  // Callback para quando uma aeronave é criada via cadastro rápido
+  const handleAircraftCreated = () => {
+    // Invalida o cache das queries de aeronaves para atualizar as listas
+    queryClient.invalidateQueries({ queryKey: ['search-aircraft'] });
+    queryClient.invalidateQueries({ queryKey: ['aircraft'] });
+  };
   
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -206,6 +276,11 @@ export default function CreateServiceOrder() {
             productsSearchTerm={productsSearchTerm}
             onCancel={handleCancel}
             isEditing={false}
+            initialServices={duplicateData?.services || []}
+            initialProducts={duplicateData?.products || []}
+            onServiceCreated={handleServiceCreated}
+            onProductCreated={handleProductCreated}
+            onAircraftCreated={handleAircraftCreated}
           />
         </CardContent>
       </Card>

@@ -38,6 +38,7 @@ export default function UpdateServiceOrder() {
   
   // Hook para atualizar ordem de serviço
   const updateServiceOrderMutation = useUpdateServiceOrder();
+  // console.log('serviceOrder', serviceOrder);
   
   // Hook para dados do formulário (clientes, usuários, aeronaves, serviços, produtos)
   const {
@@ -67,6 +68,7 @@ export default function UpdateServiceOrder() {
   const form = useForm<ServiceOrderFormData>({
     resolver: zodResolver(serviceOrderSchema),
     defaultValues: {
+      doc_type: "os",
       title: "",
       description: "",
       client_id: "",
@@ -85,6 +87,7 @@ export default function UpdateServiceOrder() {
   useEffect(() => {
     if (serviceOrder) {
       form.reset({
+        doc_type: serviceOrder.doc_type || "os",
         title: serviceOrder.title,
         description: serviceOrder.description || "",
         client_id: serviceOrder.client_id,
@@ -110,6 +113,7 @@ export default function UpdateServiceOrder() {
     products: ServiceOrderProductItem[] 
   }) => {
     if (!id) return;
+    console.log('handleSubmit',data);
     
     try {
       // Prepara os dados para envio
@@ -120,6 +124,7 @@ export default function UpdateServiceOrder() {
         aircraft_id: data.aircraft_id || null,
         status: data.status,
         priority: data.priority,
+        doc_type: data.doc_type,
         estimated_start_date: data.estimated_start_date || null,
         estimated_end_date: data.estimated_end_date || null,
         notes: data.notes || null,
@@ -146,7 +151,8 @@ export default function UpdateServiceOrder() {
       toast.success("Ordem de serviço atualizada com sucesso!");
       
       // Redireciona para a página de visualização da ordem atualizada
-      navigate(`/service-orders/show/${id}`);
+      // navigate(`/service-orders/show/${id}`);
+      navigate(`/service-orders`);
     } catch (error) {
       console.error("Erro ao atualizar ordem de serviço:", error);
       toast.error("Erro ao atualizar ordem de serviço. Verifique os dados e tente novamente.");
@@ -281,7 +287,7 @@ export default function UpdateServiceOrder() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Editar Ordem de Serviço</h1>
           <p className="text-gray-600">
-            Atualize as informações da ordem #{serviceOrder.id.slice(-8).toUpperCase()}
+            Atualize as informações da ordem #{String(serviceOrder.id).slice(-8).toUpperCase()}
           </p>
         </div>
       </div>
@@ -340,7 +346,7 @@ export default function UpdateServiceOrder() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-gray-600">ID da Ordem:</span>
-              <p className="font-medium">#{serviceOrder.id.slice(-8).toUpperCase()}</p>
+              <p className="font-medium">#{String(serviceOrder.id).slice(-8).toUpperCase()}</p>
             </div>
             <div>
               <span className="text-gray-600">Criada em:</span>

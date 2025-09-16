@@ -128,6 +128,7 @@ interface ServiceOrderFormProps {
  * Componente de formulário para criação e edição de ordens de serviço
  * Inclui validação de dados, seleção de serviços e produtos
  */
+
 export default function ServiceOrderForm({
   form,
   onSubmit,
@@ -171,6 +172,26 @@ export default function ServiceOrderForm({
   const [productsTotal, setProductsTotal] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
+  
+  // Sincroniza selectedAircraft com o aircraft_id do formulário quando carregado
+  useEffect(() => {
+    const aircraftId = form.watch('aircraft_id');
+    
+    if (aircraftId && aircraft.length > 0) {
+      const foundAircraft = aircraft.find(a => String(a.id) === String(aircraftId));
+      if (foundAircraft) {
+        setSelectedAircraft(foundAircraft);
+        // Força a atualização do valor do formulário se necessário
+        const currentValue = form.getValues('aircraft_id');
+        if (currentValue !== String(foundAircraft.id)) {
+          form.setValue('aircraft_id', String(foundAircraft.id), { shouldValidate: true });
+        }
+      }
+    } else if (!aircraftId) {
+      setSelectedAircraft(null);
+    }
+  }, [form.watch('aircraft_id'), aircraft, form]);
+  
   // Calcula totais quando serviços ou produtos mudam
   useEffect(() => {
     const sTotal = selectedServices.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
@@ -179,21 +200,19 @@ export default function ServiceOrderForm({
     setProductsTotal(pTotal);
     setTotalAmount(sTotal + pTotal);
   }, [selectedServices, selectedProducts]);
+  // console.log('aircraft', aircraft);
+  // console.log('selectedAircraft',selectedAircraft);
+  
   // Adiciona um serviço à lista
   const addService = (serviceId: string) => {
     if (!serviceId) return;
     
     // Busca mais robusta - compara tanto string quanto number
     const service = availableServices.find(s => {
-      // const serviceIdStr = String(s.id);
-      // const serviceIdNum = Number(serviceId);
-      // console.log(`Comparando: s.id=${s.id} (${typeof s.id}) com serviceId=${serviceId} (${typeof serviceId})`);
-      // console.log(`String comparison: ${serviceIdStr} === ${serviceId} = ${serviceIdStr === serviceId}`);
-      // console.log(`Number comparison: ${s.id} === ${serviceIdNum} = ${s.id === serviceIdNum}`);
       return String(s.id) === serviceId || s.id === serviceId;
     });
     
-    console.log('service encontrado:', service);
+    // console.log('service encontrado:', service);
     
     if (!service) {
       console.error('Serviço não encontrado para ID:', serviceId);
@@ -245,8 +264,8 @@ export default function ServiceOrderForm({
   // Adiciona um produto à lista
   const addProduct = (productId: string) => {
     if (!productId) return;
-    console.log('productId recebido:', productId, 'tipo:', typeof productId);
-    console.log('availableProducts:', availableProducts);
+    // console.log('productId recebido:', productId, 'tipo:', typeof productId);
+    // console.log('availableProducts:', availableProducts);
     const product = availableProducts.find(p => String(p.id) === productId);
     if (!product) return;
 
@@ -310,7 +329,7 @@ export default function ServiceOrderForm({
     // Se a aeronave tem cliente, seleciona automaticamente
     if (aircraft.client_id) {
       form.setValue('client_id', String(aircraft.client_id));
-      form.setValue('client_name', aircraft.client?.name || '');
+      // form.setValue('client_name', aircraft.client?.name || '');
     }
   };
 
@@ -345,20 +364,24 @@ export default function ServiceOrderForm({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Título */}
+              {/* Tipo de Documento */}
               <FormField
                 control={form.control}
-                name="title"
+                name="doc_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Título *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Digite o título da ordem"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
+                    <FormLabel>Tipo de Documento *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="orc">Orçamento</SelectItem>
+                        <SelectItem value="os">Ordem de Serviço</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -376,7 +399,7 @@ export default function ServiceOrderForm({
                         <Combobox
                           options={aircraft.map(aircraftItem => ({
                             value: String(aircraftItem.id),
-                            label: `${aircraftItem.matricula}${aircraftItem.config ? ` - ` : ''}${aircraftItem.client_name ? ` (${aircraftItem.client.name})` : ''}`
+                            label: `${aircraftItem.matricula}${aircraftItem.client_name ? ` (${aircraftItem.client_name})` : ''}`
                           }))}
                           value={field.value}
                           onValueChange={(value) => {
@@ -386,6 +409,7 @@ export default function ServiceOrderForm({
                              const aircraftFound = aircraft.find(a => String(a.id) === String(value));
                              if (aircraftFound && aircraftFound.client_id) {
                                form.setValue('client_id', String(aircraftFound.client_id));
+                               form.setValue('title', 'O.S. '+String(aircraftFound.matricula));
                                setSelectedAircraft(aircraftFound);
                              }
                            } else {
@@ -417,7 +441,23 @@ export default function ServiceOrderForm({
                   </FormItem>
                 )}
               />
-
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Digite o título da ordem"
+                        {...field}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {/* Card do Cliente Selecionado */}
                {selectedAircraft && selectedAircraft.client && (
                  <Card className="bg-blue-50 border-blue-200 md:col-span-2">

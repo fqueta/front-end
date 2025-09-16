@@ -1,0 +1,115 @@
+/* Estilos específicos para impressão */
+@media print {
+  /* Oculta elementos de navegação e ações */
+  .no-print,
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Oculta botões de ação */
+  button:not(.print-visible),
+  .btn:not(.print-visible) {
+    display: none !important;
+  }
+
+  /* Oculta elementos específicos */
+  .alert-dialog,
+  .dialog,
+  .tooltip,
+  .popover {
+    display: none !important;
+  }
+
+  /* Remove sombras e bordas desnecessárias */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  /* Ajusta o layout para impressão */
+  .container {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Remove espaçamentos desnecessários */
+  .py-6 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Ajusta cards para impressão */
+  .card {
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Força quebra de página antes de elementos importantes */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Evita quebra de página dentro de elementos */
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Ajusta cores para impressão em preto e branco */
+  * {
+    color: black !important;
+    background: white !important;
+  }
+
+  /* Mantém cores importantes para badges e status */
+  .badge,
+  .status-badge {
+    border: 1px solid #000 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ajusta tabelas para impressão */
+  table {
+    border-collapse: collapse !important;
+  }
+
+  table, th, td {
+    border: 1px solid #000 !important;
+  }
+
+  th {
+    background: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  /* Remove animações */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Ajusta fonte para impressão */
+  body {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+  }
+
+  h1 { font-size: 18pt !important; }
+  h2 { font-size: 16pt !important; }
+  h3 { font-size: 14pt !important; }
+  h4 { font-size: 13pt !important; }
+  h5 { font-size: 12pt !important; }
+  h6 { font-size: 11pt !important; }
+
+  /* Oculta elementos específicos da página de service order */
+  .service-order-actions,
+  .quick-actions-card,
+  .history-card {
+    display: none !important;
+  }
+}

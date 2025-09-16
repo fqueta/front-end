@@ -49,11 +49,17 @@ export type ServiceOrderStatus =
 export type ServiceOrderPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 /**
+ * Tipo de documento da ordem de serviço
+ */
+export type ServiceOrderDocType = 'os' | 'orc';
+
+/**
  * Ordem de serviço base
  */
 export interface ServiceOrder {
   id: string;
   order_number: string;
+  doc_type: ServiceOrderDocType;
   title: string;
   description?: string;
   client_id?: string;
@@ -82,6 +88,7 @@ export interface ServiceOrder {
  * Dados para criar uma nova ordem de serviço
  */
 export interface CreateServiceOrderInput {
+  doc_type: ServiceOrderDocType;
   title: string;
   description?: string;
   client_id?: string;
@@ -102,6 +109,7 @@ export interface CreateServiceOrderInput {
  * Dados para atualizar uma ordem de serviço
  */
 export interface UpdateServiceOrderInput {
+  doc_type?: ServiceOrderDocType;
   title?: string;
   description?: string;
   client_id?: string;
@@ -124,6 +132,7 @@ export interface UpdateServiceOrderInput {
  * Dados do formulário de ordem de serviço
  */
 export interface ServiceOrderFormData {
+  doc_type: ServiceOrderDocType;
   title: string;
   description: string;
   client_id: string;

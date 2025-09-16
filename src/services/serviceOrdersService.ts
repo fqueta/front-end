@@ -67,7 +67,11 @@ class ServiceOrdersService extends BaseApiService {
    * @param id - ID da ordem de serviço
    */
   async deleteServiceOrder(id: string): Promise<void> {
-    await this.delete<void>(`${this.endpoint}/${id}`);
+    const response = await fetch(`${this.API_BASE_URL}${this.endpoint}/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+    await this.handleResponse<void>(response);
   }
 
   /**
@@ -194,7 +198,7 @@ class ServiceOrdersService extends BaseApiService {
     return this.updateServiceOrder(id, data);
   }
 
-  async delete(id: string): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     return this.deleteServiceOrder(id);
   }
 }

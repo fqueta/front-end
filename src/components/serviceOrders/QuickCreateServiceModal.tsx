@@ -64,10 +64,12 @@ export function QuickCreateServiceModal({
   });
   const categoryAny = categoriesData as any;
   const unitAny = unitsData as any;
+  // console.log('unitsData:', unitsData);
   // Lista de categorias e unidades
-  const categories = Array.isArray(categoryAny?.data) ? categoryAny.data : [];
+  const categories = Array.isArray(categoryAny) ? categoryAny : [];
   const units = Array.isArray(unitAny?.data) ? unitAny.data : [];
-
+  // console.log('categories:', categories);
+  
   /**
    * Submete o formulário de criação de serviço
    */

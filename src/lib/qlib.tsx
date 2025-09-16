@@ -19,6 +19,9 @@ export function getVersionApi(): string {
 export function ucwords(str: string): string {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
+export function getApiUrl(): string {
+  return getTenantApiUrl()+''+getVersionApi() || 'http://{tenant_id}.localhost:8000/api/v1';
+}
 // Converte data do formato 'YYYY-MM-DD' para 'DD/MM/YYYY' (padrão brasileiro)
 export function dataParaBR(dataISO: string): string {
   const [ano, mes, dia] = dataISO.split('-');

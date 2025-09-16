@@ -5,6 +5,7 @@ import { z } from "zod";
  * Separado em arquivo próprio para evitar problemas com Fast Refresh
  */
 export const serviceOrderSchema = z.object({
+  doc_type: z.enum(["os", "orc"]),
   title: z.string().min(1, "Título é obrigatório"),
   description: z.string().min(1, "Descrição é obrigatória"),
   client_id: z.string().min(1, "Cliente é obrigatório"),

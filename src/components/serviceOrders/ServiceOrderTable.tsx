@@ -72,6 +72,8 @@ interface ServiceOrderTableProps {
   onStatusFilterChange: (status: string) => void;
   priorityFilter: string;
   onPriorityFilterChange: (priority: string) => void;
+  docTypeFilter: string;
+  onDocTypeFilterChange: (docType: string) => void;
 }
 
 /**
@@ -93,7 +95,9 @@ export default function ServiceOrderTable({
   statusFilter,
   onStatusFilterChange,
   priorityFilter,
-  onPriorityFilterChange
+  onPriorityFilterChange,
+  docTypeFilter,
+  onDocTypeFilterChange
 }: ServiceOrderTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceOrderToDelete, setServiceOrderToDelete] = useState<string | null>(null);
@@ -181,7 +185,7 @@ export default function ServiceOrderTable({
       </div>
     );
   }
-
+  console.log('serviceOrders:', serviceOrders);
   return (
     <div className="space-y-4">
       {/* Filtros */}
@@ -238,28 +242,56 @@ export default function ServiceOrderTable({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Filtro de Tipo de Documento */}
+        <div className="w-full sm:w-48">
+          <Select value={docTypeFilter} onValueChange={onDocTypeFilterChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="os">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                    O.S.
+                  </Badge>
+                </div>
+              </SelectItem>
+              <SelectItem value="orc">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-green-100 text-green-800">
+                    Orçamento
+                  </Badge>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Tabela */}
       <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">ID</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Prioridade</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Data Criação</TableHead>
-              <TableHead>Valor Total</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[800px] sm:min-w-[1000px] lg:min-w-[1200px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60px] min-w-[60px] text-xs sm:text-sm">ID</TableHead>
+                <TableHead className="w-[80px] min-w-[80px] text-xs sm:text-sm">Tipo</TableHead>
+                <TableHead className="min-w-[120px] sm:min-w-[180px] text-xs sm:text-sm">Título</TableHead>
+                <TableHead className="min-w-[100px] sm:min-w-[140px] text-xs sm:text-sm">Cliente</TableHead>
+                <TableHead className="min-w-[90px] sm:min-w-[110px] text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="min-w-[90px] sm:min-w-[110px] text-xs sm:text-sm">Prioridade</TableHead>
+                {/* <TableHead className="min-w-[120px] sm:min-w-[140px] hidden lg:table-cell text-xs sm:text-sm">Responsável</TableHead> */}
+                <TableHead className="min-w-[100px] sm:min-w-[120px] hidden md:table-cell text-xs sm:text-sm">Data Criação</TableHead>
+                <TableHead className="min-w-[90px] sm:min-w-[110px] text-xs sm:text-sm">Valor Total</TableHead>
+                <TableHead className="text-right w-[80px] min-w-[80px] text-xs sm:text-sm">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {serviceOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <FileText className="h-8 w-8 text-gray-400" />
                     <p className="text-gray-500">Nenhuma ordem de serviço encontrada</p>
@@ -273,23 +305,31 @@ export default function ServiceOrderTable({
                 
                 return (
                   <TableRow key={serviceOrder.id}>
-                    <TableCell className="font-medium">
-                      #{serviceOrder.id.slice(-6).toUpperCase()}
+                    <TableCell className="font-medium text-xs sm:text-sm">
+                      #{String(serviceOrder.id).slice(-6).toUpperCase()}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-[200px]">
-                        <p className="font-medium truncate">{serviceOrder.title}</p>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${serviceOrder.doc_type === 'os' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}
+                      >
+                        {serviceOrder.doc_type === 'os' ? 'O.S.' : 'Orc'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[120px] sm:max-w-[180px]">
+                        <p className="font-medium truncate text-xs sm:text-sm">{serviceOrder.title}</p>
                         {serviceOrder.description && (
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-xs text-gray-500 truncate hidden sm:block">
                             {serviceOrder.description}
                           </p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="truncate max-w-[150px]">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 hidden sm:block" />
+                        <span className="truncate max-w-[100px] sm:max-w-[140px] text-xs sm:text-sm">
                           {serviceOrder.client?.name || serviceOrder.client_name || "-"}
                         </span>
                       </div>
@@ -303,7 +343,7 @@ export default function ServiceOrderTable({
                           <SelectTrigger className="w-auto border-none p-0 h-auto">
                             <Badge 
                               variant="outline" 
-                              className={`bg-${statusConfig.color}-100 text-${statusConfig.color}-800 cursor-pointer`}
+                              className={`bg-${statusConfig.color}-100 text-${statusConfig.color}-800 cursor-pointer text-xs`}
                             >
                               {statusConfig.label}
                             </Badge>
@@ -313,7 +353,7 @@ export default function ServiceOrderTable({
                               <SelectItem key={status.value} value={status.value}>
                                 <Badge 
                                   variant="outline" 
-                                  className={`bg-${status.color}-100 text-${status.color}-800`}
+                                  className={`bg-${status.color}-100 text-${status.color}-800 text-xs`}
                                 >
                                   {status.label}
                                 </Badge>
@@ -324,7 +364,7 @@ export default function ServiceOrderTable({
                       ) : (
                         <Badge 
                           variant="outline" 
-                          className={`bg-${statusConfig.color}-100 text-${statusConfig.color}-800`}
+                          className={`bg-${statusConfig.color}-100 text-${statusConfig.color}-800 text-xs`}
                         >
                           {statusConfig.label}
                         </Badge>
@@ -333,29 +373,29 @@ export default function ServiceOrderTable({
                     <TableCell>
                       <Badge 
                         variant="outline" 
-                        className={`bg-${priorityConfig.color}-100 text-${priorityConfig.color}-800`}
+                        className={`bg-${priorityConfig.color}-100 text-${priorityConfig.color}-800 text-xs`}
                       >
                         {priorityConfig.label}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="truncate max-w-[120px]">
+                    {/* <TableCell className="hidden lg:table-cell">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                        <span className="truncate max-w-[100px] sm:max-w-[120px] text-xs sm:text-sm">
                           {serviceOrder.assigned_user?.name || "-"}
                         </span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm">
+                    </TableCell> */}
+                    <TableCell className="hidden md:table-cell">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+                        <span className="text-xs sm:text-sm">
                           {formatDate(serviceOrder.created_at)}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">
+                      <span className="font-medium text-xs sm:text-sm">
                         {formatCurrency(serviceOrder.total_amount || 0)}
                       </span>
                     </TableCell>
@@ -393,7 +433,8 @@ export default function ServiceOrderTable({
               })
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
 
       {/* Paginação */}
