@@ -18,6 +18,9 @@ import { systemSettingsService, AdvancedSystemSettings } from "@/services/system
 export default function SystemSettings() {
   // Estado da aba ativa
   const [activeTab, setActiveTab] = useState("basic");
+  
+  // Estado de carregamento
+  const [isLoading, setIsLoading] = useState(false);
 
   // Estados para configurações básicas - Switch
   const [basicSwitchSettings, setBasicSwitchSettings] = useState(() => {
@@ -75,11 +78,11 @@ export default function SystemSettings() {
 
   // Estados para configurações avançadas - Input
   const [advancedInputSettings, setAdvancedInputSettings] = useState({
-    maxFileSize: "10",
-    sessionTimeout: "120",
-    apiRateLimit: "1000",
-    maxConnections: "100",
-    backupRetention: "30",
+    maxFileSize: "",
+    sessionTimeout: "",
+    apiRateLimit: "",
+    maxConnections: "",
+    backupRetention: "",
     url_api_aeroclube: "",
     token_api_aeroclube: "",
   });
@@ -278,6 +281,62 @@ export default function SystemSettings() {
       toast.error("Erro ao salvar configurações. Tente novamente.");
     }
   };
+
+  /**
+   * Carrega as configurações avançadas da API
+   */
+  const loadAdvancedSettings = async () => {
+    try {
+      setIsLoading(true);
+      const data = await systemSettingsService.getAdvancedSettings('/options');
+      console.log('data',data);
+      
+      // Atualiza o estado com os dados da API
+      setAdvancedInputSettings({
+        maxFileSize: data.maxFileSize || "",
+        sessionTimeout: data.sessionTimeout || "",
+        apiRateLimit: data.apiRateLimit || "",
+        maxConnections: data.maxConnections || "",
+        backupRetention: data.backupRetention || "",
+        url_api_aeroclube: data.url_api_aeroclube || "",
+        token_api_aeroclube: data.token_api_aeroclube || "",
+      });
+      
+      // Também atualiza as outras configurações se necessário
+      if (data.enableApiLogging !== undefined) {
+        setAdvancedSwitchSettings(prev => ({
+          ...prev,
+          enableApiLogging: data.enableApiLogging,
+          enableCaching: data.enableCaching,
+          enableCompression: data.enableCompression,
+          enableSslRedirect: data.enableSslRedirect,
+        }));
+      }
+      
+      if (data.logLevel) {
+        setAdvancedSelectSettings(prev => ({
+          ...prev,
+          logLevel: data.logLevel,
+          cacheDriver: data.cacheDriver,
+          sessionDriver: data.sessionDriver,
+          queueDriver: data.queueDriver,
+        }));
+      }
+      
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+      toast.error('Erro ao carregar configurações da API');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * useEffect para carregar as configurações ao montar o componente
+   */
+  useEffect(() => {
+    loadAdvancedSettings();
+  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">

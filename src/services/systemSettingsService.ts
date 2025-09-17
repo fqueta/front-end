@@ -45,8 +45,8 @@ class SystemSettingsService extends BaseApiService {
   /**
    * Obtém as configurações avançadas do sistema
    */
-  async getAdvancedSettings(): Promise<AdvancedSystemSettings> {
-    const response = await this.get<ApiResponse<AdvancedSystemSettings>>(this.endpoint);
+  async getAdvancedSettings(endpoint : string | null): Promise<AdvancedSystemSettings> {
+    const response = await this.get<ApiResponse<AdvancedSystemSettings>>(endpoint || this.endpoint);
     return response.data;
   }
 }

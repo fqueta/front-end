@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PeriodSelector } from '@/components/metrics/PeriodSelector';
+import ImportButton from '@/components/metrics/ImportButton';
 import { 
   Table, 
   TableBody, 
@@ -42,13 +43,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
 import { 
   useMetricsList, 
   useCreateMetric, 
@@ -58,6 +52,8 @@ import {
 import { MetricRecord, CreateMetricInput, MetricList } from '@/types/metrics';
 import { metricsService } from '@/services/metricsService';
 import { createGenericService } from '@/services/GenericApiService';
+
+// Componente do botão importar
 // Schema de validação
 const metricSchema = z.object({
   period: z.string().min(1, "Período é obrigatório"), // yyyy-mm-dd
@@ -101,18 +97,7 @@ export default function Metrics() {
     { name: "proposals", label: "Propostas", type: "number" },
     { name: "closed_deals", label: "Fechados", type: "number" }
   ];
-  console.log(API_BASE_URL);
-  
-  // console.log(metricsData);
-  
-  // useEffect(() => {
-  //   // alert('search: ' + search + ', page: ' + page);
-  //   // const { data: metricsData, isLoading, error } = useMetricsList({
-  //   //   year: new Date().getFullYear(),
-  //   //   // search: search,
-  //   //   // page,
-  //   // });
-  // }, [search, page]); // Para garantir que o efeito seja executado quando search ou page mudarem
+ 
   const createMutation = useCreateMetric();
   const updateMutation = useUpdateMetric();
   const deleteMutation = useDeleteMetric();
@@ -142,7 +127,7 @@ export default function Metrics() {
   // });
   const [metrics,setMetrics] = useState<MetricRecord[]>([]);
   const year: number = new Date().getFullYear();
-  const currentMonthNumber: number = new Date().getMonth() + 1;
+  // const currentMonthNumber: number = new Date().getMonth() + 1;
   const [totalPages , setTotalPages] = useState<number>(0);
   const [inicio, setInicio] = useState<string | Date>('');
   const [fim, setFim] = useState<string | Date>('');
@@ -152,12 +137,8 @@ export default function Metrics() {
       end_date: typeof fim === 'string' ? fim : fim.toISOString().split('T')[0]
       }).then((res) => {
         const resAny = res as any;
-        // const totalMetrics = resAny?.totais_filtrados || [];
-        // const totalTends = resAny?.agregados?.visitas?.por_semana || [];
-        // const totalTendsConv = resAny?.agregados?.conversas?.por_semana || [];
-      // console.log(res);
-      const totalPages = resAny?.last_page || 1;
-      const registros = resAny?.registros ?? resAny?.data ?? [];
+        const totalPages = resAny?.last_page || 1;
+        const registros = resAny?.registros ?? resAny?.data ?? [];
       // console.log(`registros:`,registros);      
       setMetrics(registros);
       setTotalPages(totalPages);      
@@ -230,6 +211,7 @@ export default function Metrics() {
   };
 
   const handleImport = async (tipo: string) => {
+    
     try {
       setIsLoading(true);
       const currentDate = new Date();
@@ -238,26 +220,21 @@ export default function Metrics() {
       
       const body = {
         ano: currentYear,
-        numero: currentMonth,
-        tipo: selectedPeriod
+        // numero: currentMonth,
+        tipo: selectedPeriod,
+        inicio: inicio,
+        fim: fim,
       };
+      // console.log('inicio',inicio);
+      // console.log('fim',fim);
+      // console.log('body',body);
+      
       const metricsService = createGenericService('/dashboard-metrics/import-aeroclube');
       const response = await metricsService.create(body);
-      // const response = await fetch(`${API_BASE_URL}/dashboard-metrics/import-aeroclube`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(body)
-      // });
-
-      if (response.ok) {
-        // Recarregar os dados após importação
-        consult({type: selectedPeriod, value: selectedPeriod, inicio: inicio, fim: fim});
-        console.log('Importação realizada com sucesso');
-      } else {
-        console.error('Erro na importação:', response.statusText);
-      }
+      
+      // Recarregar os dados após importação
+      consult({type: selectedPeriod, value: selectedPeriod, inicio: inicio, fim: fim});
+      console.log('Importação realizada com sucesso:', response);
     } catch (error) {
       console.error('Erro ao importar dados:', error);
     } finally {
@@ -323,33 +300,12 @@ export default function Metrics() {
             <span className="sm:hidden">Nova {title}</span>
           </Button>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-none">
-                <Download className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Importar</span>
-                <span className="sm:hidden">Import</span>
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleImport('investimentos')}>
-                Investimentos
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleImport('visitas')}>
-                Visitas
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleImport('atendimento')}>
-                Atendimento
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleImport('proposta')}>
-                Proposta & Fechamentos
-              </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => handleImport('fechamentos')}>
-                Fechamentos
-              </DropdownMenuItem> */}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ImportButton 
+            onImport={handleImport}
+            inicio={inicio}
+            fim={fim}
+            isLoading={isLoading}
+          />
         </div>
       </div>
 
