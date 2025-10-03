@@ -1,5 +1,6 @@
 import { PaginatedResponse } from '@/types/index';
 import { getTenantIdFromSubdomain, getTenantApiUrl, getVersionApi } from '@/lib/qlib';
+import { FinancialError, FinancialErrorFactory } from '@/types/financial-errors';
 
 /**
  * Classe base para todos os serviços de API
@@ -39,25 +40,28 @@ export abstract class BaseApiService {
    */
   protected async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      let errorMessage = 'Erro na requisição';
       let errorBody: any = null;
       try {
         errorBody = await response.json();
-        errorMessage = errorBody?.message || errorMessage;
       } catch {
         // ignore json parse errors
       }
-      // console.log('errorMessage:', errorMessage);
-      // console.log('errorBody:', errorBody);
-      // const error = new Error(errorMessage) as Error & { status?: number; body?: any };
-      // error.status = response.status;
-      // // error.message = response.message;
-      // error.body = errorBody;
-      // console.log('error:', error);
       
-      throw errorBody;
+      // Cria erro específico baseado no status HTTP
+      const financialError = FinancialErrorFactory.fromHttpResponse(response.status, errorBody);
+      throw financialError;
     }
-    return response.json();
+
+    try {
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      const networkError = FinancialErrorFactory.createNetworkError(
+        'Erro ao processar resposta da API',
+        error as Error
+      );
+      throw networkError;
+    }
   }
 
   /**
@@ -117,12 +121,19 @@ export abstract class BaseApiService {
    * @param params - Parâmetros de query
    */
   protected async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = this.buildUrlWithParams(`${this.API_BASE_URL}${endpoint}`, params);
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-    return this.handleResponse<T>(response);
+    try {
+      const url = this.buildUrlWithParams(`${this.API_BASE_URL}${endpoint}`, params);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error instanceof FinancialError) {
+        throw error;
+      }
+      throw FinancialErrorFactory.createNetworkError('Erro na requisição GET', error as Error);
+    }
   }
 
   /**
@@ -131,12 +142,19 @@ export abstract class BaseApiService {
    * @param data - Dados para envio
    */
   protected async post<T>(endpoint: string, data?: any): Promise<T> {
-    const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    return this.handleResponse<T>(response);
+    try {
+      const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error instanceof FinancialError) {
+        throw error;
+      }
+      throw FinancialErrorFactory.createNetworkError('Erro na requisição POST', error as Error);
+    }
   }
 
   /**
@@ -145,12 +163,40 @@ export abstract class BaseApiService {
    * @param data - Dados para envio
    */
   protected async put<T>(endpoint: string, data?: any): Promise<T> {
-    const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    return this.handleResponse<T>(response);
+    try {
+      const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error instanceof FinancialError) {
+        throw error;
+      }
+      throw FinancialErrorFactory.createNetworkError('Erro na requisição PUT', error as Error);
+    }
+  }
+
+  /**
+   * Executa requisição PATCH
+   * @param endpoint - Endpoint da API
+   * @param data - Dados para envio
+   */
+  protected async patch<T>(endpoint: string, data?: any): Promise<T> {
+    try {
+      const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers: this.getHeaders(),
+        body: data ? JSON.stringify(data) : undefined,
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error instanceof FinancialError) {
+        throw error;
+      }
+      throw FinancialErrorFactory.createNetworkError('Erro na requisição PATCH', error as Error);
+    }
   }
 
   /**
@@ -158,10 +204,17 @@ export abstract class BaseApiService {
    * @param endpoint - Endpoint da API
    */
   protected async delete<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-    return this.handleResponse<T>(response);
+    try {
+      const response = await fetch(`${this.API_BASE_URL}${endpoint}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      });
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error instanceof FinancialError) {
+        throw error;
+      }
+      throw FinancialErrorFactory.createNetworkError('Erro na requisição DELETE', error as Error);
+    }
   }
 }

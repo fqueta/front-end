@@ -120,6 +120,11 @@ export const defaultMenu: MenuItemDTO[] = [
     permission: "finance.view",
     items: [
       {
+        title: "Categorias",
+        url: "/financial/categories",
+        permission: "financial.categories.view"
+      },
+      {
         title: "Pagamentos",
         url: "/finance/payments",
         permission: "finance.payments.view"

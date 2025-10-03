@@ -510,7 +510,7 @@ export default function Categories() {
                         <SelectContent>
                           <SelectItem value="servicos">Serviços</SelectItem>
                           <SelectItem value="produtos">Produtos</SelectItem>
-                          <SelectItem value="financeiro">Financeiro</SelectItem>
+                          {/* <SelectItem value="financeiro">Financeiro</SelectItem> */}
                         </SelectContent>
                       </Select>
                       <FormMessage />

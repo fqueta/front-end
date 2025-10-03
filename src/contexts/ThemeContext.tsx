@@ -84,11 +84,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         if (appearanceSettings.primaryColor && !isDarkMode) {
           const hslColor = hexToHsl(appearanceSettings.primaryColor);
           document.documentElement.style.setProperty('--primary', hslColor);
-          console.log(`Cor primária aplicada (modo claro): ${hslColor}`);
+          // console.log(`Cor primária aplicada (modo claro): ${hslColor}`);
         } else if (isDarkMode) {
           // Remove a cor primária personalizada no modo escuro para usar a padrão
           document.documentElement.style.removeProperty('--primary');
-          console.log('Cor primária personalizada removida (modo escuro ativo)');
+          // console.log('Cor primária personalizada removida (modo escuro ativo)');
         }
         
         // Aplica cor secundária personalizada
@@ -113,7 +113,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           // Esta configuração será aplicada pelos componentes que usam notificações
         }
         
-        console.log('Configurações de aparência aplicadas:', appearanceSettings);
+        // console.log('Configurações de aparência aplicadas:', appearanceSettings);
       }
       
       // Carrega configurações básicas que afetam a aparência

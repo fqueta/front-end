@@ -97,7 +97,18 @@ export default function Metrics() {
     { name: "proposals", label: "Propostas", type: "number" },
     { name: "closed_deals", label: "Fechados", type: "number" }
   ];
- 
+  console.log(API_BASE_URL);
+  
+  // console.log(metricsData);
+  
+  // useEffect(() => {
+  //   // alert('search: ' + search + ', page: ' + page);
+  //   // const { data: metricsData, isLoading, error } = useMetricsList({
+  //   //   year: new Date().getFullYear(),
+  //   //   // search: search,
+  //   //   // page,
+  //   // });
+  // }, [search, page]); // Para garantir que o efeito seja executado quando search ou page mudarem
   const createMutation = useCreateMetric();
   const updateMutation = useUpdateMetric();
   const deleteMutation = useDeleteMetric();
@@ -210,8 +221,7 @@ export default function Metrics() {
     }
   };
 
-  const handleImport = async (tipo: string) => {
-    
+  const handleImport = async (tipo: string, inicioParam?: string | Date, fimParam?: string | Date) => {
     try {
       setIsLoading(true);
       const currentDate = new Date();
@@ -220,20 +230,16 @@ export default function Metrics() {
       
       const body = {
         ano: currentYear,
-        // numero: currentMonth,
+        numero: currentMonth,
         tipo: selectedPeriod,
-        inicio: inicio,
-        fim: fim,
+        inicio: inicioParam || inicio,
+        fim: fimParam || fim,
       };
-      // console.log('inicio',inicio);
-      // console.log('fim',fim);
-      // console.log('body',body);
-      
       const metricsService = createGenericService('/dashboard-metrics/import-aeroclube');
       const response = await metricsService.create(body);
       
       // Recarregar os dados após importação
-      consult({type: selectedPeriod, value: selectedPeriod, inicio: inicio, fim: fim});
+      consult({type: selectedPeriod, value: selectedPeriod, inicio: inicioParam || inicio, fim: fimParam || fim});
       console.log('Importação realizada com sucesso:', response);
     } catch (error) {
       console.error('Erro ao importar dados:', error);

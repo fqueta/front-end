@@ -29,12 +29,14 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { PermissionGuard } from "./components/auth/PermissionGuard";
-import Dashboard2 from "./pages/Dashboard";
+import Dashboard from "@/pages/Dashboard";
 import ServiceOrders from "./pages/ServiceOrders";
 import CreateServiceOrder from "./pages/CreateServiceOrder";
 import UpdateServiceOrder from "./pages/UpdateServiceOrder";
 import ShowServiceOrder from "./pages/ShowServiceOrder";
 import QuickCreateServiceOrder from "./pages/QuickCreateServiceOrder";
+import Financial from "./pages/financial/Financial";
+import FinancialCategories from "./pages/FinancialCategories";
 
 // console.log('App.tsx: Starting app initialization');
 // console.log('QueryClient available:', QueryClient);
@@ -93,8 +95,8 @@ const App = () => {
               <Route path="/" element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <Dashboard2 />
-                    {/* <Dashboard /> */}
+                    {/* <Dashboard2 /> */}
+                    <Dashboard />
                   </AppLayout>
                 </ProtectedRoute>
               } />
@@ -218,6 +220,34 @@ const App = () => {
                       requireRemote={false}
                     >
                       <SystemSettings />
+                    </PermissionGuard>
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              
+              {/* Rotas do Módulo Financeiro */}
+              <Route path="/financial" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="financial.view" 
+                      menuPath="/financial"
+                      requireRemote={false}
+                    >
+                      <Financial />
+                    </PermissionGuard>
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/financial/categories" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <PermissionGuard 
+                      required="financial.categories.view" 
+                      menuPath="/financial/categories"
+                      requireRemote={false}
+                    >
+                      <FinancialCategories />
                     </PermissionGuard>
                   </AppLayout>
                 </ProtectedRoute>
