@@ -78,11 +78,9 @@ export const AccountsPayableTable: React.FC<AccountsPayableTableProps> = ({ cate
     setIsLoading(true);
     try {
       const response = await financialService.accountsPayable.getAll(filters);
-      console.log('response', response);
-      const resAny = response as any
-      setAccounts(resAny?.data || []);
-      setTotalPages(resAny?.totalPages || 0);
-      setTotal(resAny?.total || 0);
+      setAccounts(response.data);
+      setTotalPages(response.totalPages);
+      setTotal(response.total);
     } catch (error: any) {
       console.error('Erro ao carregar contas a pagar:', error);
       toast.error('Erro ao carregar contas a pagar');
@@ -311,7 +309,7 @@ export const AccountsPayableTable: React.FC<AccountsPayableTableProps> = ({ cate
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {accounts && accounts.length > 0 ? accounts.map((account) => (
+                {accounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">
                       {account.description}
@@ -367,13 +365,7 @@ export const AccountsPayableTable: React.FC<AccountsPayableTableProps> = ({ cate
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      Nenhuma conta a pagar encontrada
-                    </TableCell>
-                  </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
 
@@ -381,7 +373,7 @@ export const AccountsPayableTable: React.FC<AccountsPayableTableProps> = ({ cate
             {totalPages > 1 && (
               <div className="flex justify-between items-center mt-4">
                 <div className="text-sm text-gray-500">
-                  Mostrando {accounts?.length || 0} de {total} registros
+                  Mostrando {accounts.length} de {total} registros
                 </div>
                 <div className="flex gap-2">
                   <Button

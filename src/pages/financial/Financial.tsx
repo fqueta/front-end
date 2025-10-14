@@ -10,6 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'react-hot-toast';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../components/ui/select';
+import {
   DollarSign,
   TrendingUp,
   TrendingDown,
@@ -38,7 +45,13 @@ export const Financial: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<FinancialDashboardData | null>(null);
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('30d');
+  // Período: Mês e Ano
+  const now = new Date();
+  const initialMonth = String(now.getMonth() + 1).padStart(2, '0');
+  const initialYear = String(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
+  const [selectedYear, setSelectedYear] = useState<string>(initialYear);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(`${initialYear}-${initialMonth}`);
 
   /**
    * Carrega dados do dashboard
@@ -68,6 +81,11 @@ export const Financial: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, [selectedPeriod]);
+
+  // Atualiza o período (YYYY-MM) quando mês/ano mudarem
+  useEffect(() => {
+    setSelectedPeriod(`${selectedYear}-${selectedMonth}`);
+  }, [selectedMonth, selectedYear]);
 
   /**
    * Formata valor monetário
@@ -127,7 +145,46 @@ export const Financial: React.FC = () => {
           <p className="text-gray-600">Controle financeiro completo da sua empresa</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-4 items-center">
+          {/* Filtro de Período */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-600" />
+            <div className="flex gap-2">
+              <Select value={selectedMonth} onValueChange={(v) => setSelectedMonth(v)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="01">Janeiro</SelectItem>
+                  <SelectItem value="02">Fevereiro</SelectItem>
+                  <SelectItem value="03">Março</SelectItem>
+                  <SelectItem value="04">Abril</SelectItem>
+                  <SelectItem value="05">Maio</SelectItem>
+                  <SelectItem value="06">Junho</SelectItem>
+                  <SelectItem value="07">Julho</SelectItem>
+                  <SelectItem value="08">Agosto</SelectItem>
+                  <SelectItem value="09">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={selectedYear} onValueChange={(v) => setSelectedYear(v)}>
+                <SelectTrigger className="w-28">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 6 }).map((_, i) => {
+                    const year = (now.getFullYear() - i).toString();
+                    return (
+                      <SelectItem key={year} value={year}>{year}</SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <Button variant="outline">
             <FileText className="h-4 w-4 mr-2" />
             Relatórios
@@ -152,7 +209,7 @@ export const Financial: React.FC = () => {
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(summary.totalIncome)}
               </div>
-              <p className="text-xs text-gray-600">Últimos 30 dias</p>
+              <p className="text-xs text-gray-600">Período: {selectedMonth}/{selectedYear}</p>
             </CardContent>
           </Card>
 
@@ -166,7 +223,7 @@ export const Financial: React.FC = () => {
               <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(summary.totalExpenses)}
               </div>
-              <p className="text-xs text-gray-600">Últimos 30 dias</p>
+              <p className="text-xs text-gray-600">Período: {selectedMonth}/{selectedYear}</p>
             </CardContent>
           </Card>
 
@@ -180,7 +237,7 @@ export const Financial: React.FC = () => {
               <div className={`text-2xl font-bold ${getValueColor(summary.netProfit)}`}>
                 {formatCurrency(summary.netProfit)}
               </div>
-              <p className="text-xs text-gray-600">Últimos 30 dias</p>
+              <p className="text-xs text-gray-600">Período: {selectedMonth}/{selectedYear}</p>
             </CardContent>
           </Card>
 

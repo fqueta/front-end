@@ -69,7 +69,7 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [localCategories, setLocalCategories] = useState<FinancialCategory[]>(categories);
+  const [localCategories, setLocalCategories] = useState<FinancialCategory[]>(Array.isArray(categories) ? categories : []);
   /**
    * Preenche o formulário quando editando uma conta existente
    */
@@ -111,7 +111,7 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
    * Atualiza categorias locais quando as props mudam
    */
   useEffect(() => {
-    setLocalCategories(categories);
+    setLocalCategories(Array.isArray(categories) ? categories : []);
   }, [categories]);
 
   /**
@@ -193,7 +193,7 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
    */
   const handleCategoryCreated = (newCategory: FinancialCategory) => {
     setLocalCategories(prev => [...prev, newCategory]);
-    setFormData(prev => ({ ...prev, category: newCategory.id }));
+    setFormData(prev => ({ ...prev, category: String(newCategory.id) }));
     setShowCategoryModal(false);
   };
 
@@ -201,7 +201,14 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
    * Filtra categorias de receita
    */
   
-  const incomeCategories = localCategories.filter(cat => cat.type === TransactionType.INCOME && cat.isActive);
+  const incomeCategories = (localCategories || []).filter(
+    (cat) => String(cat.type).toLowerCase() === TransactionType.INCOME && (cat.isActive ?? true)
+  );
+  
+  // Fallback para exibição do nome da categoria selecionada no gatilho do Select
+  const selectedCategoryName = formData.category
+    ? (localCategories || []).find((c) => String(c.id) === String(formData.category))?.name || ''
+    : '';
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -271,11 +278,15 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
                   onValueChange={(value) => handleInputChange('category', value)}
                 >
                   <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Selecione uma categoria" />
+                    {selectedCategoryName ? (
+                      <span>{selectedCategoryName}</span>
+                    ) : (
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     {incomeCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={String(category.id)}>
                         {category.name}
                       </SelectItem>
                     ))}
@@ -424,7 +435,7 @@ export const AccountReceivableForm: React.FC<AccountReceivableFormProps> = ({
         isOpen={showCategoryModal}
         onClose={() => setShowCategoryModal(false)}
         onCategoryCreated={handleCategoryCreated}
-        categoryType="income"
+        categoryType={TransactionType.INCOME}
       />
     </Dialog>
   );

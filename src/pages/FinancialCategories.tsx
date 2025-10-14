@@ -132,7 +132,7 @@ export default function FinancialCategories() {
     defaultValues: {
       name: "",
       description: "",
-      type: undefined as any,
+      type: TransactionType.EXPENSE,
       color: FINANCIAL_CATEGORY_COLORS[0],
       parentId: "",
       isActive: true,
@@ -150,7 +150,7 @@ export default function FinancialCategories() {
     form.reset({
       name: "",
       description: "",
-      type: undefined as any,
+      type: TransactionType.EXPENSE,
       color: FINANCIAL_CATEGORY_COLORS[0],
       parentId: "",
       isActive: true,

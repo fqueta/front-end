@@ -69,6 +69,28 @@ export const defaultMenu: MenuItemDTO[] = [
     permission: "dashboard.view"
   },
   {
+    title: "Atendimento",
+    icon: "Users",
+    permission: "attendimento.view",
+    items: [
+      {
+        title: "Workflow",
+        url: "/attendimento/workflow",
+        permission: "attendimento.workflow.view"
+      },
+      {
+        title: "Funis",
+        url: "/attendimento/funis",
+        permission: "attendimento.funis.view"
+      },
+      {
+        title: "Etapas",
+        url: "/attendimento/etapas",
+        permission: "attendimento.etapas.view"
+      }
+    ]
+  },
+  {
     title: "Clientes",
     url: "/clients",
     icon: "Users",

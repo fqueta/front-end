@@ -261,92 +261,12 @@ export const categoriesService = {
    * Lista todas as categorias financeiras
    */
   async getAll(): Promise<FinancialCategory[]> {
-    console.log('🔍 categoriesService.getAll() chamado - carregando categorias mock...');
-    
-    // Mock data temporário enquanto o backend não está disponível
-    const mockCategories: FinancialCategory[] = [
-      {
-        id: '1',
-        name: 'Vendas',
-        type: 'income' as any,
-        color: '#10B981',
-        description: 'Receitas de vendas de produtos e serviços',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Serviços',
-        type: 'income' as any,
-        color: '#3B82F6',
-        description: 'Receitas de prestação de serviços',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '3',
-        name: 'Consultoria',
-        type: 'income' as any,
-        color: '#8B5CF6',
-        description: 'Receitas de consultoria',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '4',
-        name: 'Fornecedores',
-        type: 'expense' as any,
-        color: '#EF4444',
-        description: 'Pagamentos a fornecedores',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '5',
-        name: 'Salários',
-        type: 'expense' as any,
-        color: '#F59E0B',
-        description: 'Folha de pagamento',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '6',
-        name: 'Aluguel',
-        type: 'expense' as any,
-        color: '#6B7280',
-        description: 'Aluguel de imóveis',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: '7',
-        name: 'Utilities',
-        type: 'expense' as any,
-        color: '#84CC16',
-        description: 'Energia, água, internet',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-    
-    // Simula delay da API
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log('✅ categoriesService.getAll() retornando', mockCategories.length, 'categorias:', mockCategories);
-    
-    return mockCategories;
-    
-    // Código original comentado para quando o backend estiver disponível
-    // const response = await api.get('/financial/categories');
-    // return response.data;
+    const response: any = await api.get('/financial/categories');
+    // Normaliza diferentes formatos de resposta (array direto ou objeto com data)
+    if (Array.isArray(response)) {
+      return response as FinancialCategory[];
+    }
+    return (response?.data ?? []) as FinancialCategory[];
   },
 
   /**
@@ -379,49 +299,32 @@ export const dashboardService = {
    * Obtém dados do dashboard financeiro
    */
   async getDashboardData(period?: string): Promise<FinancialDashboardData> {
-    console.log('🔍 dashboardService.getDashboardData() chamado - carregando dados mock...');
-    
-    // Mock data temporário enquanto o backend não está disponível
-    const mockDashboardData: FinancialDashboardData = {
-      summary: {
-        totalIncome: 15000,
-        totalExpenses: 8500,
-        netProfit: 6500,
-        cashBalance: 12000,
-        overdueReceivables: 2500,
-        overduePayables: 1200
-      },
-      recentTransactions: [
-        {
-          id: '1',
-          description: 'Venda de produto',
-          amount: 1500,
-          date: new Date().toISOString(),
-          type: 'income'
-        },
-        {
-          id: '2',
-          description: 'Pagamento fornecedor',
-          amount: 800,
-          date: new Date().toISOString(),
-          type: 'expense'
+    // Usa cache para evitar chamadas repetidas em curto intervalo
+    const cacheKey = CacheKeyGenerator.dashboard(period);
+    const cached = financialCache.get<FinancialDashboardData>(cacheKey);
+    if (cached) return cached;
+
+    // Monta parâmetros suportando period (YYYY-MM) e month/year
+    const paramsObj: Record<string, any> = {};
+    if (period) {
+      paramsObj.period = period;
+      const parts = period.split('-');
+      if (parts.length === 2) {
+        const [year, month] = parts;
+        if (year && month) {
+          paramsObj.year = year;
+          paramsObj.month = month;
         }
-      ],
-      upcomingReceivables: [],
-      upcomingPayables: []
-    };
+      }
+    }
+
+    const response = await api.get('/financial/overview', paramsObj);
+    // Normaliza e armazena no cache (suporta resposta direta ou com wrapper data)
+    const data: FinancialDashboardData = (response as any)?.data ?? response;
+    console.log('overview params', paramsObj);
     
-    // Simula delay da API
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    console.log('✅ dashboardService.getDashboardData() retornando dados mock:', mockDashboardData);
-    
-    return mockDashboardData;
-    
-    // Código original comentado para quando o backend estiver disponível
-    // const params = period ? `?period=${period}` : '';
-    // const response = await api.get(`/financial/dashboard${params}`);
-    // return response.data;
+    financialCache.set(cacheKey, data);
+    return data;
   },
 
   /**

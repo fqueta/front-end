@@ -37,6 +37,9 @@ import ShowServiceOrder from "./pages/ShowServiceOrder";
 import QuickCreateServiceOrder from "./pages/QuickCreateServiceOrder";
 import Financial from "./pages/financial/Financial";
 import FinancialCategories from "./pages/FinancialCategories";
+import Workflow from "./pages/attendimento/Workflow";
+import Funis from "./pages/attendimento/Funis";
+import Etapas from "./pages/attendimento/Etapas";
 
 // console.log('App.tsx: Starting app initialization');
 // console.log('QueryClient available:', QueryClient);
@@ -289,7 +292,30 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
-              
+
+              {/* Rotas de Atendimento */}
+              <Route path="/attendimento/workflow" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Workflow />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/attendimento/funis" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Funis />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/attendimento/etapas" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Etapas />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
