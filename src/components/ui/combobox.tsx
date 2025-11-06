@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Plus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -35,11 +35,17 @@ interface ComboboxProps {
   loading?: boolean
   onSearch?: (searchTerm: string) => void
   searchTerm?: string
+  // Permite incluir ação de cadastro inline no autocomplete
+  onCreateNew?: () => void
+  createNewLabel?: string
 }
 
 /**
  * Componente Combobox reutilizável com funcionalidade de autocomplete
  * Baseado no Command component do shadcn/ui
+ *
+ * Adições:
+ * - Suporte opcional a "Cadastrar novo" dentro da lista de autocomplete
  */
 export function Combobox({
   options,
@@ -53,11 +59,50 @@ export function Combobox({
   loading = false,
   onSearch,
   searchTerm,
+  onCreateNew,
+  createNewLabel = "Cadastrar novo registro...",
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [searchValue, setSearchValue] = React.useState(searchTerm || "")
+  const [localSearchValue, setLocalSearchValue] = React.useState("")
 
-  const selectedOption = options.find((option) => option.value === value)
+  // Memoizar a opção selecionada para evitar re-renderizações desnecessárias
+  const selectedOption = React.useMemo(() => 
+    options.find((option) => String(option.value) === String(value)),
+    [options, value]
+  );
+  
+  // Memoizar as opções filtradas - apenas para modo local (sem onSearch)
+  const filteredOptions = React.useMemo(() => {
+    if (onSearch) {
+      // Modo controlado: retorna as opções como estão (já filtradas externamente)
+      return options;
+    }
+    // Modo local: filtra baseado no valor local
+    return options.filter((option) =>
+      option.label.toLowerCase().includes(localSearchValue.toLowerCase())
+    );
+  }, [options, localSearchValue, onSearch]);
+
+  // Handler de mudança de valor de busca - simplificado
+  const handleSearchChange = React.useCallback((newValue: string) => {
+    if (onSearch) {
+      // Modo controlado: apenas chama a função externa
+      onSearch(newValue);
+    } else {
+      // Modo local: atualiza estado interno
+      setLocalSearchValue(newValue);
+    }
+  }, [onSearch]);
+
+  // Handler de seleção - simplificado
+  const handleSelect = React.useCallback((currentValue: string) => {
+    const newValue = currentValue === value ? "" : currentValue;
+    onValueChange(newValue);
+    setOpen(false);
+  }, [value, onValueChange]);
+
+  // Valor de busca a ser exibido no input
+  const displaySearchValue = onSearch ? (searchTerm || "") : localSearchValue;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -84,35 +129,21 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder={searchPlaceholder}
-            value={searchValue}
-            onValueChange={(value) => {
-              setSearchValue(value);
-              if (onSearch) {
-                onSearch(value);
-              }
-            }}
+            value={displaySearchValue}
+            onValueChange={handleSearchChange}
           />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {(onSearch ? options : options.filter((option) =>
-                option.label.toLowerCase().includes(searchValue.toLowerCase())
-              )).map((option) => (
+              {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
                   disabled={option.disabled}
-                  onSelect={(currentValue) => {
-                    if (currentValue === value) {
-                      onValueChange("")
-                    } else {
-                      onValueChange(currentValue)
-                    }
-                    setOpen(false)
-                  }}
+                  onSelect={handleSelect}
                 >
                   <Check
                     className={cn(
@@ -123,6 +154,19 @@ export function Combobox({
                   {option.label}
                 </CommandItem>
               ))}
+              {onCreateNew && (
+                <CommandItem
+                  key="__create_new__"
+                  value="__create_new__"
+                  onSelect={() => {
+                    onCreateNew?.();
+                    setOpen(false);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {createNewLabel}
+                </CommandItem>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

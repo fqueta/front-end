@@ -34,18 +34,48 @@ export function useServiceOrder(id: string, queryOptions?: any) {
 }
 
 export function useCreateServiceOrder(mutationOptions?: any) {
+  const queryClient = useQueryClient();
   const api = getServiceOrdersApi();
-  return api.useCreate(mutationOptions);
+  
+  return api.useCreate({
+    ...mutationOptions,
+    onSuccess: (data: any, variables: any, context: any) => {
+      // Invalida todas as queries relacionadas a service-orders
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      // Chama o callback original se existir
+      mutationOptions?.onSuccess?.(data, variables, context);
+    }
+  });
 }
 
 export function useUpdateServiceOrder(mutationOptions?: any) {
+  const queryClient = useQueryClient();
   const api = getServiceOrdersApi();
-  return api.useUpdate(mutationOptions);
+  
+  return api.useUpdate({
+    ...mutationOptions,
+    onSuccess: (data: any, variables: any, context: any) => {
+      // Invalida todas as queries relacionadas a service-orders
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      // Chama o callback original se existir
+      mutationOptions?.onSuccess?.(data, variables, context);
+    }
+  });
 }
 
 export function useDeleteServiceOrder(mutationOptions?: any) {
+  const queryClient = useQueryClient();
   const api = getServiceOrdersApi();
-  return api.useDelete(mutationOptions);
+  
+  return api.useDelete({
+    ...mutationOptions,
+    onSuccess: (data: any, variables: any, context: any) => {
+      // Invalida todas as queries relacionadas a service-orders
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      // Chama o callback original se existir
+      mutationOptions?.onSuccess?.(data, variables, context);
+    }
+  });
 }
 
 // Hook para estatísticas de ordens de serviço

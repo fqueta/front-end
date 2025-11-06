@@ -182,10 +182,10 @@ export default function ProductsTable({
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-sm font-medium">
-                          Venda: R$ {product.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          Venda: R$ {product.salePrice ? product.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Custo: R$ {product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          Custo: R$ {product.costPrice ? product.costPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                         </div>
                       </div>
                     </TableCell>

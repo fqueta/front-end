@@ -46,19 +46,20 @@ interface CreatedClient {
 interface QuickClientFormProps {
   onClientCreated: (client: CreatedClient) => void;
   onCancel: () => void;
+  initialName?: string;
 }
 
 /**
  * Formulário de cadastro rápido de cliente
  * Permite criar um cliente com informações básicas
  */
-export default function QuickClientForm({ onClientCreated, onCancel }: QuickClientFormProps) {
+export default function QuickClientForm({ onClientCreated, onCancel, initialName = "" }: QuickClientFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<QuickClientFormData>({
     resolver: zodResolver(quickClientSchema),
     defaultValues: {
-      name: "",
+      name: initialName,
       email: "",
       phone: "",
       address: "",

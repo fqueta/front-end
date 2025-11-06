@@ -40,6 +40,10 @@ import FinancialCategories from "./pages/FinancialCategories";
 import Workflow from "./pages/attendimento/Workflow";
 import Funis from "./pages/attendimento/Funis";
 import Etapas from "./pages/attendimento/Etapas";
+import FlashCreateServiceOrder from "./pages/attendimento/FlashCreateServiceOrder";
+import AircraftAttendance from "./pages/AircraftAttendance";
+import Test from "./pages/Test";
+import TestAutocomplete from "./pages/TestAutocomplete";
 
 // console.log('App.tsx: Starting app initialization');
 // console.log('QueryClient available:', QueryClient);
@@ -301,6 +305,13 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
+              <Route path="/attendimento/workflow/flashCreate" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <FlashCreateServiceOrder />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               <Route path="/attendimento/funis" element={
                 <ProtectedRoute>
                   <AppLayout>
@@ -312,6 +323,33 @@ const App = () => {
                 <ProtectedRoute>
                   <AppLayout>
                     <Etapas />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Rota de Atendimentos de Aeronaves */}
+              <Route path="/aircraft-attendance" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AircraftAttendance />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Rota de Teste */}
+              <Route path="/test" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Test />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              
+              {/* Rota de Teste Autocomplete */}
+              <Route path="/test-autocomplete" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <TestAutocomplete />
                   </AppLayout>
                 </ProtectedRoute>
               } />

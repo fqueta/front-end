@@ -9,12 +9,16 @@ interface ProductsStatsProps {
 export function ProductsStats({ products }: ProductsStatsProps) {
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.active).length;
-  const totalStockValue = products.reduce((sum, product) => sum + (product.stock * product.costPrice), 0);
+  const totalStockValue = products.reduce((sum, product) => sum + (product.stock * (product.costPrice || 0)), 0);
   const lowStockProducts = products.filter(p => p.stock <= 10).length;
   
   // Calcula a margem média apenas se houver produtos
   const averageMargin = products.length > 0 
-    ? Math.round(products.reduce((sum, p) => sum + ((p.salePrice - p.costPrice) / p.salePrice * 100), 0) / products.length)
+    ? Math.round(products.reduce((sum, p) => {
+        const salePrice = p.salePrice || 0;
+        const costPrice = p.costPrice || 0;
+        return salePrice > 0 ? sum + ((salePrice - costPrice) / salePrice * 100) : sum;
+      }, 0) / products.length)
     : 0;
 
   return (

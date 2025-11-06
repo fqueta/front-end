@@ -16,7 +16,7 @@ export function ServicesStats({ services }: ServicesStatsProps) {
   
   // Calcula o preço médio dos serviços
   const averagePrice = services.length > 0 
-    ? services.reduce((sum, service) => sum + service.price, 0) / services.length
+    ? services.reduce((sum, service) => sum + (service.price || 0), 0) / services.length
     : 0;
   
   // Calcula a duração média dos serviços (convertendo tudo para minutos)

@@ -59,6 +59,7 @@ export interface FinancialErrorDetails {
   timestamp: string;
   requestId?: string;
   userId?: string;
+  errors?: any;
 }
 
 // Classe base para erros financeiros
@@ -70,9 +71,16 @@ export class FinancialError extends Error {
   public readonly timestamp: string;
   public readonly requestId?: string;
   public readonly userId?: string;
+  public readonly errors?: any;
 
+  /**
+   * Construtor da classe de erro financeiro / Financial error constructor
+   * Recebe detalhes do erro e inicializa a instância com uma mensagem legível.
+   * Ensures `Error` is constructed with a string message instead of an object.
+   */
   constructor(details: FinancialErrorDetails) {
-    super(details.message);
+    // Usa a mensagem fornecida ou um fallback / Use provided message or fallback
+    super(details.message || 'Erro financeiro');
     this.name = 'FinancialError';
     this.type = details.type;
     this.code = details.code;
@@ -81,10 +89,11 @@ export class FinancialError extends Error {
     this.timestamp = details.timestamp;
     this.requestId = details.requestId;
     this.userId = details.userId;
+    this.errors = details.errors;
   }
 
   /**
-   * Converte o erro para um objeto JSON
+   * Converte o erro para um objeto JSON / Convert error to JSON object
    */
   toJSON(): FinancialErrorDetails {
     return {
@@ -238,7 +247,9 @@ export class FinancialErrorFactory {
       case 400:
         return new ValidationError(
           FinancialErrorCode.REQUIRED_FIELD,
-          data.message || 'Dados inválidos'
+          data.message || 'Dados inválidos',
+          undefined,
+          data // Preserva os dados completos da resposta no campo value
         );
       case 401:
         return new FinancialError({

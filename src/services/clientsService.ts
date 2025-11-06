@@ -5,13 +5,13 @@ import {
   ClientsListParams,  
 } from '@/types/clients';
 import { PaginatedResponse } from '@/types/index';
-import { BaseApiService } from './BaseApiService';
+import { IndependentApiService } from './IndependentApiService';
 
 /**
  * Serviço para gerenciamento de clientes
- * Estende BaseApiService para reutilizar funcionalidades comuns
+ * Estende IndependentApiService para evitar dependência de FinancialError
  */
-class ClientsService extends BaseApiService {
+class ClientsService extends IndependentApiService {
   /**
    * Lista clientes com parâmetros de filtro
    * @param params - Parâmetros de listagem

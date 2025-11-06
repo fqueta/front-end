@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAircraft } from '@/hooks/aircraft';
+import { AttendanceTimeline } from '@/components/aircraftAttendance/AttendanceTimeline';
 import type { AircraftRecord } from '@/types/aircraft';
 
 /**
@@ -270,6 +271,13 @@ export default function AircraftView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Timeline de Atendimentos */}
+      <AttendanceTimeline
+        aircraftId={aircraft.id}
+        title="Histórico de Atendimentos"
+        maxItems={10}
+      />
 
       {/* Dados de Configuração (RAB) */}
       <Card>

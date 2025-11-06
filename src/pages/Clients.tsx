@@ -83,6 +83,7 @@ import {
 import { ClientRecord, CreateClientInput } from '@/types/clients';
 import { ClientForm } from '@/components/clients/ClientForm';
 import { ClientsTable } from '@/components/clients/ClientsTable';
+import { ApiError } from '@/services/IndependentApiService';
 
 // Form validation schema
 const clientSchema = z.object({
@@ -148,6 +149,64 @@ const brazilianStates = [
   { value: "TO", label: "Tocantins" },
 ];
 
+/**
+ * Processa erros de validação da API e retorna uma mensagem formatada
+ * @param error - Objeto de erro da API
+ * @returns Mensagem de erro formatada
+ */
+const processApiValidationError = (error: ApiError): string => {
+  // Função auxiliar para extrair e formatar erros de validação
+  const extractValidationErrors = (errors: any): string[] => {
+    const errorMessages: string[] = [];
+    
+    if (errors && typeof errors === 'object') {
+      Object.keys(errors).forEach(field => {
+        const fieldErrors = errors[field];
+        if (Array.isArray(fieldErrors)) {
+          fieldErrors.forEach(errorMsg => {
+            errorMessages.push(`${field.toUpperCase()}: ${errorMsg}`);
+          });
+        }
+      });
+    }
+    
+    return errorMessages;
+  };
+
+  // Verifica se o erro tem uma propriedade 'value' com dados de validação
+  if (error?.value && typeof error.value === 'object' && error.value.errors) {
+    const errorMessages = extractValidationErrors(error.value.errors);
+    if (errorMessages.length > 0) {
+      return errorMessages.join('\n');
+    }
+  }
+  
+  // Verifica se é um erro de validação com estrutura específica da API
+  if (error?.response?.data?.message === "Erro de validação" && error?.response?.data?.errors) {
+    const errorMessages = extractValidationErrors(error.response.data.errors);
+    if (errorMessages.length > 0) {
+      return errorMessages.join('\n');
+    }
+    return 'Erro de validação nos dados fornecidos';
+  }
+  
+  // Verifica se o erro tem dados de validação diretamente na propriedade 'errors'
+  if (error?.errors) {
+    const errorMessages = extractValidationErrors(error.errors);
+    if (errorMessages.length > 0) {
+      return errorMessages.join('\n');
+    }
+  }
+  
+  // Verifica se o erro tem uma mensagem personalizada
+  if (error?.getUserFriendlyMessage && typeof error.getUserFriendlyMessage === 'function') {
+    return error.getUserFriendlyMessage();
+  }
+  
+  // Fallback para outros tipos de erro
+  return error?.message || error?.response?.data?.message || 'Ocorreu um erro inesperado';
+};
+
 export default function Clients() {
   // State for search, dialogs, and client operations
   const [searchTerm, setSearchTerm] = useState("");
@@ -157,6 +216,7 @@ export default function Clients() {
   const [clientToDelete, setClientToDelete] = useState<ClientRecord | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -288,6 +348,13 @@ export default function Clients() {
           setClientToDelete(null);
         },
         onError: (error) => {
+          console.log('Erro completo ao excluir cliente:', {
+            error: error,
+            message: error.message,
+            errors: error.errors,
+            response: error.response,
+            fullObject: JSON.stringify(error, null, 2)
+          });
           toast({
             title: "Erro ao excluir cliente",
             description: `Ocorreu um erro: ${error.message}`,
@@ -314,8 +381,8 @@ export default function Clients() {
     if (editingClient) {
       updateClientMutation.mutate(
         {
-          id: editingClient.id, ...clientData,
-          data: undefined
+          id: editingClient.id,
+          data: clientData
         },
         {
           onSuccess: () => {
@@ -327,10 +394,18 @@ export default function Clients() {
             setEditingClient(null);
             form.reset();
           },
-          onError: (error) => {
+          onError: (error: ApiError) => {
+            console.log('Erro completo ao atualizar cliente:', {
+              error: error,
+              message: error.message,
+              errors: error.errors,
+              response: error.response,
+              fullObject: JSON.stringify(error, null, 2)
+            }); 
+            const errorMessage = processApiValidationError(error);
             toast({
               title: "Erro ao atualizar cliente",
-              description: `Ocorreu um erro: ${error.message}`,
+              description: errorMessage,
               variant: "destructive",
             });
           },
@@ -349,11 +424,19 @@ export default function Clients() {
             form.reset();
           },
           onError: (error) => {
-            toast({
-              title: "Erro ao criar cliente",
-              description: `Ocorreu um erro: ${error.message}`,
-              variant: "destructive",
-            });
+            // console.log('Erro completo ao criar cliente:', {
+            //   error: error,
+            //   message: error.message,
+            //   errors: error.errors,
+            //   response: error.response,
+            //   fullObject: JSON.stringify(error, null, 2)
+            // });
+            const errorMessage = processApiValidationError(error);
+            // toast({
+            //   title: "Erro ao criar cliente",
+            //   description: errorMessage,
+            //   variant: "destructive",
+            // });
           },
         }
       );

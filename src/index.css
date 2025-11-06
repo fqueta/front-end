@@ -103,3 +103,62 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Otimizações para performance de scroll e correção de scroll-linked effects */
+@layer utilities {
+  .transform-gpu {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .scroll-optimized {
+    scroll-behavior: auto;
+    overscroll-behavior: contain;
+    contain: layout style paint;
+  }
+
+  .click-optimized {
+    contain: layout style;
+    touch-action: manipulation;
+  }
+
+  /* Correções específicas para Firefox e scroll-linked effects */
+  @supports (-moz-appearance: none) {
+    .firefox-scroll-fix {
+      scroll-behavior: auto !important;
+      overscroll-behavior: auto !important;
+      will-change: auto !important;
+    }
+  }
+
+  /* Garantir que o dropdown do react-select apareça acima de todos os modais */
+  [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+
+  /* Garantir z-index alto para o menu do react-select */
+  .client-select__menu {
+    z-index: 99999 !important;
+  }
+
+  /* Garantir z-index alto para SelectContent do shadcn/ui - maior que Dialog (z-index: 50) */
+  [data-radix-select-content] {
+    z-index: 9999 !important;
+  }
+
+  /* Garantir que o Portal do Select também tenha z-index alto */
+  [data-radix-select-portal] {
+    z-index: 9999 !important;
+  }
+
+  /* Garantir que ServiceAutocompleteSelect e ClientAutocompleteSelect apareçam acima dos modais */
+  .service-autocomplete-select .react-select__menu,
+  .client-autocomplete-select .react-select__menu {
+    z-index: 99999 !important;
+  }
+
+  /* Corrigir opacity dos inputs do react-select que podem ficar invisíveis */
+  [id*="react-select"][id*="input"] {
+    opacity: 1 !important;
+  }
+}

@@ -7,6 +7,11 @@ import {
   ServiceOrderStats
 } from '@/types/serviceOrders';
 import { ApiResponse, PaginatedResponse } from '@/types/index';
+import { 
+  serviceOrderAuditService,
+  ServiceOrderAuditEntityType,
+  ServiceOrderAuditAction as AuditAction
+} from './audit/ServiceOrderAudit';
 
 /**
  * Parâmetros para listagem de ordens de serviço
@@ -16,6 +21,8 @@ export interface ServiceOrderListParams extends ServiceOrderFilters {
   per_page?: number;
   sort?: string;
   order?: 'asc' | 'desc';
+  funnelId?: string | null ;
+  stageId?: string | null ;
 }
 
 /**
@@ -49,7 +56,21 @@ class ServiceOrdersService extends BaseApiService {
    */
   async createServiceOrder(data: CreateServiceOrderInput): Promise<ServiceOrder> {
     const response = await this.post<ApiResponse<ServiceOrder>>(this.endpoint, data);
-    return response.data;
+    const serviceOrder = response.data;
+    
+    // Log da auditoria
+    serviceOrderAuditService.log({
+      entityType: ServiceOrderAuditEntityType.SERVICE_ORDER,
+      entityId: serviceOrder.id,
+      action: AuditAction.CREATE,
+      newValues: serviceOrder,
+      metadata: { 
+        operation: 'createServiceOrder',
+        inputData: data 
+      }
+    });
+    
+    return serviceOrder;
   }
 
   /**
@@ -58,8 +79,26 @@ class ServiceOrdersService extends BaseApiService {
    * @param data - Dados para atualização
    */
   async updateServiceOrder(id: string, data: UpdateServiceOrderInput): Promise<ServiceOrder> {
+    // Busca o valor antigo para auditoria
+    const oldServiceOrder = await this.getServiceOrder(id);
+    
     const response = await this.put<ApiResponse<ServiceOrder>>(`${this.endpoint}/${id}`, data);
-    return response.data;
+    const newServiceOrder = response.data;
+    
+    // Log da auditoria
+    serviceOrderAuditService.log({
+      entityType: ServiceOrderAuditEntityType.SERVICE_ORDER,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      oldValues: oldServiceOrder,
+      newValues: newServiceOrder,
+      metadata: { 
+        operation: 'updateServiceOrder',
+        inputData: data 
+      }
+    });
+    
+    return newServiceOrder;
   }
 
   /**
@@ -67,11 +106,25 @@ class ServiceOrdersService extends BaseApiService {
    * @param id - ID da ordem de serviço
    */
   async deleteServiceOrder(id: string): Promise<void> {
+    // Busca o valor antigo para auditoria
+    const oldServiceOrder = await this.getServiceOrder(id);
+    
     const response = await fetch(`${this.API_BASE_URL}${this.endpoint}/${id}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
     await this.handleResponse<void>(response);
+    
+    // Log da auditoria
+    serviceOrderAuditService.log({
+      entityType: ServiceOrderAuditEntityType.SERVICE_ORDER,
+      entityId: id,
+      action: AuditAction.DELETE,
+      oldValues: oldServiceOrder,
+      metadata: { 
+        operation: 'deleteServiceOrder'
+      }
+    });
   }
 
   /**
@@ -177,8 +230,27 @@ class ServiceOrdersService extends BaseApiService {
    * @param status - Novo status
    */
   async updateStatus(id: string, status: string): Promise<ServiceOrder> {
+    // Busca o valor antigo para auditoria
+    const oldServiceOrder = await this.getServiceOrder(id);
+    
     const response = await this.put<ApiResponse<ServiceOrder>>(`${this.endpoint}/${id}/status`, { status });
-    return response.data;
+    const newServiceOrder = response.data;
+    
+    // Log da auditoria para mudança de status
+    serviceOrderAuditService.log({
+      entityType: ServiceOrderAuditEntityType.SERVICE_ORDER,
+      entityId: id,
+      action: AuditAction.STATUS_CHANGE,
+      oldValues: oldServiceOrder,
+      newValues: newServiceOrder,
+      metadata: { 
+        operation: 'updateStatus',
+        newStatus: status,
+        oldStatus: oldServiceOrder.status
+      }
+    });
+    
+    return newServiceOrder;
   }
 
   // Métodos de conveniência para manter compatibilidade com useGenericApi

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +53,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ServiceOrderDetails from "@/components/serviceOrders/ServiceOrderDetails";
+import { AttendanceTimeline } from "@/components/aircraftAttendance/AttendanceTimeline";
+import { ServiceOrderHistory } from "@/components/serviceOrders/ServiceOrderHistory";
 import {
   useServiceOrder,
   useDeleteServiceOrder
@@ -67,7 +69,13 @@ import { object } from "zod";
 export default function ShowServiceOrder() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Parâmetros de origem para navegação inteligente
+  const fromWorkflow = searchParams.get('from') === 'workflow';
+  const funnelId = searchParams.get('funnelId');
+  const funnelName = searchParams.get('funnelName');
   
   // Hook para buscar ordem de serviço
   const {
@@ -99,9 +107,15 @@ export default function ShowServiceOrder() {
     }
   };
 
-  // Volta para a listagem
+  // Volta para a origem (workflow ou listagem)
   const handleBack = () => {
-    navigate("/service-orders");
+    if (fromWorkflow && funnelId) {
+      // Volta para o workflow no funil específico
+      navigate(`/attendimento/workflow?funnelId=${funnelId}`);
+    } else {
+      // Volta para a listagem padrão
+      navigate("/service-orders");
+    }
   };
 
   // Atualiza os dados
@@ -167,7 +181,7 @@ export default function ShowServiceOrder() {
           <CardContent>
             <Button onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Listagem
+              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
             </Button>
           </CardContent>
         </Card>
@@ -190,7 +204,7 @@ export default function ShowServiceOrder() {
             <div className="flex gap-2">
               <Button onClick={handleBack} variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar para Listagem
+                {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
               </Button>
               <Button onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -246,7 +260,7 @@ export default function ShowServiceOrder() {
           <CardContent>
             <Button onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Listagem
+              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
             </Button>
           </CardContent>
         </Card>
@@ -266,7 +280,7 @@ export default function ShowServiceOrder() {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Voltar
+            {fromWorkflow ? 'Voltar para Workflow' : 'Voltar'}
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{serviceOrder.title}</h1>
@@ -373,6 +387,13 @@ export default function ShowServiceOrder() {
         isLoading={false}
       />
 
+      {/* Timeline de Atendimentos */}
+      <AttendanceTimeline
+        serviceOrderId={serviceOrder.id}
+        title="Atendimentos Relacionados"
+        maxItems={5}
+      />
+
       {/* Informações Detalhadas - Cliente e Aeronave */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Card de Informações do Cliente */}
@@ -435,7 +456,7 @@ export default function ShowServiceOrder() {
         </CardContent>
       </Card>
 
-      {/* Histórico (placeholder para futura implementação) */}
+      {/* Histórico de Alterações */}
       <Card className="no-print history-card">
         <CardHeader>
           <CardTitle>Histórico de Alterações</CardTitle>
@@ -444,9 +465,7 @@ export default function ShowServiceOrder() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <p>Histórico de alterações será implementado em uma versão futura.</p>
-          </div>
+          <ServiceOrderHistory serviceOrderId={id!} />
         </CardContent>
       </Card>
     </div>

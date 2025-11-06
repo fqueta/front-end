@@ -175,12 +175,12 @@ export default function ProductView() {
                   <Tag className="h-4 w-4" />
                   Categoria
                 </label>
-                <Badge variant="outline" className="mt-1">{product.categoryData.name}</Badge>
+                <Badge variant="outline" className="mt-1">{product.categoryData?.name || product.category}</Badge>
               </div>
               
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Unidade</label>
-                <p className="text-sm font-medium">{product.unitData.name}</p>
+                <p className="text-sm font-medium">{product.unitData?.name || product.unit}</p>
               </div>
             </div>
           </CardContent>

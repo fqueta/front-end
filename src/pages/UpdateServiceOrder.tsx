@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,12 @@ import { ServiceOrderServiceItem, ServiceOrderProductItem } from "@/types/servic
 export default function UpdateServiceOrder() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  
+  // Parâmetros de origem para navegação inteligente
+  const fromWorkflow = searchParams.get('from') === 'workflow';
+  const funnelId = searchParams.get('funnelId');
+  const funnelName = searchParams.get('funnelName');
   
   // Hook para buscar ordem de serviço
   const {
@@ -38,6 +44,7 @@ export default function UpdateServiceOrder() {
   
   // Hook para atualizar ordem de serviço
   const updateServiceOrderMutation = useUpdateServiceOrder();
+  // console.log('serviceOrder', serviceOrder);
   // console.log('serviceOrder', serviceOrder);
   
   // Hook para dados do formulário (clientes, usuários, aeronaves, serviços, produtos)
@@ -73,6 +80,10 @@ export default function UpdateServiceOrder() {
       description: "",
       client_id: "",
       aircraft_id: "",
+      // funnel_id: funnelId || undefined,
+      // stage_id: undefined,
+      funnel_id: "",
+      stage_id: "",
       status: "draft",
       priority: "medium",
       estimated_start_date: "",
@@ -82,7 +93,8 @@ export default function UpdateServiceOrder() {
       assigned_to: ""
     }
   });
-
+  
+  console.log('serviceOrderPsP_stage_id', serviceOrder?.stageId);
   // Preenche o formulário quando os dados da ordem são carregados
   useEffect(() => {
     if (serviceOrder) {
@@ -93,6 +105,8 @@ export default function UpdateServiceOrder() {
         client_id: serviceOrder.client_id,
         aircraft_id: serviceOrder.aircraft_id || "",
         status: serviceOrder.status,
+        funnel_id: serviceOrder.funnelId ? String(serviceOrder.funnelId) : "",
+        stage_id: String(serviceOrder?.stageId),
         priority: serviceOrder.priority,
         estimated_start_date: serviceOrder.estimated_start_date 
           ? serviceOrder.estimated_start_date.split('T')[0] 
@@ -104,9 +118,18 @@ export default function UpdateServiceOrder() {
         internal_notes: serviceOrder.internal_notes || "",
         assigned_to: serviceOrder.assigned_to || ""
       });
+      //verificar se o stage_id é válido
+      if (serviceOrder?.stageId) {
+        form.setValue('stage_id', String(serviceOrder?.stageId));
+      }
+      //verifca que o stage_id esta vazio e se for adiciona o valor padrão
+      if (!form.getValues().stage_id) {
+        form.setValue('stage_id', serviceOrder?.stage_id || "");
+        console.log('stage_id--userEffect', form.getValues().stage_id);
+      }
     }
   }, [serviceOrder, form]);
-
+  console.log('form.getValues()', form.getValues());
   // Submete o formulário
   const handleSubmit = async (data: ServiceOrderFormData & { 
     services: ServiceOrderServiceItem[]; 
@@ -130,6 +153,8 @@ export default function UpdateServiceOrder() {
         notes: data.notes || null,
         internal_notes: data.internal_notes || null,
         assigned_to: data.assigned_to || null,
+        funnel_id: data.funnel_id || null,
+        stage_id: data.stage_id || null,
         services: data.services.map(service => ({
           service_id: service.service_id,
           quantity: service.quantity,
@@ -152,7 +177,12 @@ export default function UpdateServiceOrder() {
       
       // Redireciona para a página de visualização da ordem atualizada
       // navigate(`/service-orders/show/${id}`);
-      navigate(`/service-orders`);
+      //se o stage_id for válido, redireciona para o workflow
+      if (form.getValues().stage_id) {
+        navigate(`/attendimento/workflow?funnelId=${funnelId}`);
+      } else {
+        navigate(`/service-orders`);
+      }
     } catch (error) {
       console.error("Erro ao atualizar ordem de serviço:", error);
       toast.error("Erro ao atualizar ordem de serviço. Verifique os dados e tente novamente.");
@@ -164,9 +194,15 @@ export default function UpdateServiceOrder() {
     navigate(`/service-orders/show/${id}`);
   };
 
-  // Volta para a visualização
+  // Volta para a origem (workflow ou visualização)
   const handleBack = () => {
-    navigate(`/service-orders/show/${id}`);
+    if (fromWorkflow && funnelId) {
+      // Volta para o workflow no funil específico
+      navigate(`/attendimento/workflow?funnelId=${funnelId}`);
+    } else {
+      // Volta para a visualização padrão
+      navigate(`/service-orders/show/${id}`);
+    }
   };
 
   // Verifica se o ID é válido
@@ -181,9 +217,9 @@ export default function UpdateServiceOrder() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/service-orders")}>
+            <Button onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Listagem
+              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
             </Button>
           </CardContent>
         </Card>
@@ -204,9 +240,9 @@ export default function UpdateServiceOrder() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
-              <Button onClick={() => navigate("/service-orders")} variant="outline">
+              <Button onClick={handleBack} variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar para Listagem
+                {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
               </Button>
               <Button onClick={() => window.location.reload()}>
                 Tentar Novamente
@@ -261,9 +297,9 @@ export default function UpdateServiceOrder() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/service-orders")}>
+            <Button onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Listagem
+              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
             </Button>
           </CardContent>
         </Card>
@@ -282,7 +318,7 @@ export default function UpdateServiceOrder() {
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Voltar
+          {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar'}
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Editar Ordem de Serviço</h1>
@@ -321,8 +357,8 @@ export default function UpdateServiceOrder() {
             isLoadingProducts={isLoadingProducts}
             onCancel={handleCancel}
             isEditing={true}
-            initialServices={serviceOrder.services || []}
-            initialProducts={serviceOrder.products || []}
+            initialServices={serviceOrder?.services || []}
+            initialProducts={serviceOrder?.products || []}
             searchClients={searchClients}
             searchUsers={searchUsers}
             searchAircraft={searchAircraft}
@@ -351,13 +387,19 @@ export default function UpdateServiceOrder() {
             <div>
               <span className="text-gray-600">Criada em:</span>
               <p className="font-medium">
-                {new Date(serviceOrder.created_at).toLocaleDateString('pt-BR')}
+                {serviceOrder.created_at && !isNaN(new Date(serviceOrder.created_at).getTime())
+                  ? new Date(serviceOrder.created_at).toLocaleDateString('pt-BR')
+                  : 'Data inválida'
+                }
               </p>
             </div>
             <div>
               <span className="text-gray-600">Última atualização:</span>
               <p className="font-medium">
-                {new Date(serviceOrder.updated_at).toLocaleDateString('pt-BR')}
+                {serviceOrder.updated_at && !isNaN(new Date(serviceOrder.updated_at).getTime())
+                  ? new Date(serviceOrder.updated_at).toLocaleDateString('pt-BR')
+                  : 'Data inválida'
+                }
               </p>
             </div>
           </div>

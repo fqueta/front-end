@@ -214,7 +214,7 @@ export default function ServicesTable({
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">
-                        R$ {service.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {service.price ? service.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
                       </div>
                     </TableCell>
                     <TableCell>

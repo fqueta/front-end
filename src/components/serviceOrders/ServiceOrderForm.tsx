@@ -45,6 +45,15 @@ import {
 import { QuickCreateAircraftModal } from "./QuickCreateAircraftModal";
 import { QuickCreateProductModal } from "./QuickCreateProductModal";
 import { QuickCreateServiceModal } from "./QuickCreateServiceModal";
+import { useFunnels } from "@/hooks/funnels";
+import { useStagesByFunnel } from "@/hooks/stages";
+import { Funnel, Stage } from "@/types/workflows";
+import { ClientAutocomplete } from "@/components/clients/ClientAutocomplete";
+import { ClientNameAutocomplete } from "@/components/clients/ClientNameAutocomplete";
+import { AircraftAutocompleteSelect } from "@/components/aircraft/AircraftAutocompleteSelect";
+import { ServiceAutocompleteSelect } from "@/components/services/ServiceAutocompleteSelect";
+import { ProductAutocompleteSelect } from "@/components/products/ProductAutocompleteSelect";
+import { QuickCreateClientModal } from "./QuickCreateClientModal";
 
 
 
@@ -172,6 +181,21 @@ export default function ServiceOrderForm({
   const [productsTotal, setProductsTotal] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [clientNameInput, setClientNameInput] = useState<string>("");
+  console.log('ddos do Form', form.getValues());
+  // Hooks para funis e etapas
+  const { data: funnelsResponse, isLoading: isLoadingFunnels } = useFunnels();
+  const funnels = funnelsResponse?.data || [];
+  
+  // Hook para etapas baseado no funil selecionado
+  const selectedFunnelId = form.watch('funnel_id');
+  const { data: stagesResponse, isLoading: isLoadingStages } = useStagesByFunnel(
+    selectedFunnelId ? String(selectedFunnelId) : undefined
+  );
+  const stages = stagesResponse?.data || [];
+  
+
   
   // Sincroniza selectedAircraft com o aircraft_id do formulário quando carregado
   useEffect(() => {
@@ -191,6 +215,47 @@ export default function ServiceOrderForm({
       setSelectedAircraft(null);
     }
   }, [form.watch('aircraft_id'), aircraft, form]);
+  
+  // Gerencia a etapa selecionada quando o funil mudar ou as etapas carregarem
+  useEffect(() => {
+    if (selectedFunnelId) {
+      const currentStageId = form.getValues('stage_id');
+      console.log('Etapa atual', {currentStageId: currentStageId});
+      if (currentStageId && stages.length > 0) {
+        // Verifica se a etapa atual existe no funil
+        const stageExists = stages.some(stage => stage.id === currentStageId);
+        if (!stageExists) {
+          // Se a etapa não existe mais no funil, limpa
+          form.setValue('stage_id', '');
+        } else {
+          // Se a etapa existe, força a atualização do valor para garantir que seja reconhecida
+          form.setValue('stage_id', currentStageId, { shouldValidate: true });
+        }
+      } else if (currentStageId && stages.length === 0 && !isLoadingStages) {
+        // Se há um stage_id mas não há etapas e não está carregando, limpa
+        form.setValue('stage_id', '');
+      }
+    } else {
+      // Se não há funil selecionado, limpa a etapa
+      form.setValue('stage_id', '');
+    }
+  }, [selectedFunnelId, stages, form, isLoadingStages]);
+  
+  // Garante que o stage_id seja preservado quando as etapas são carregadas pela primeira vez (modo edição)
+  useEffect(() => {
+    if (isEditing && selectedFunnelId && stages.length > 0 && !isLoadingStages) {
+      const currentStageId = form.getValues('stage_id');
+      if (currentStageId) {
+        const stageExists = stages.some(stage => stage.id === currentStageId);
+        if (stageExists) {
+          // Força a re-renderização do select com o valor correto
+          setTimeout(() => {
+            form.setValue('stage_id', currentStageId, { shouldValidate: true });
+          }, 100);
+        }
+      }
+    }
+  }, [isEditing, selectedFunnelId, stages, isLoadingStages, form]);
   
   // Calcula totais quando serviços ou produtos mudam
   useEffect(() => {
@@ -311,6 +376,59 @@ export default function ServiceOrderForm({
     }));
   };
 
+  // Adiciona um serviço a partir de um registro de ServiceRecord
+  const addServiceFromRecord = (service: ServiceRecord) => {
+    const serviceId = String(service.id);
+    const alreadyExists = selectedServices.some(item => String(item.service_id) === serviceId);
+    if (alreadyExists) {
+      alert('Este serviço já foi adicionado à lista!');
+      return;
+    }
+    const price = Number(service.price) || 0;
+    const newService: AvailableService = {
+      id: serviceId,
+      name: service.name,
+      price: price,
+      unit: service.unit || ''
+    };
+    const newItem: ServiceOrderServiceItem = {
+      service_id: serviceId,
+      service: newService,
+      quantity: 1,
+      unit_price: price,
+      total_price: price,
+      notes: ''
+    };
+    setSelectedServices(prev => [...prev, newItem]);
+  };
+
+  // Adiciona um produto a partir de um registro de ProductRecord
+  const addProductFromRecord = (product: ProductRecord) => {
+    const productId = String(product.id);
+    const alreadyExists = selectedProducts.some(item => String(item.product_id) === productId);
+    if (alreadyExists) {
+      alert('Este produto já foi adicionado à lista!');
+      return;
+    }
+    const price = Number(product.salePrice) || 0;
+    const newProduct: AvailableProduct = {
+      id: productId,
+      name: product.name,
+      salePrice: price,
+      unit: product.unit || '',
+      stock: Number(product.stock) || 0,
+    };
+    const newItem: ServiceOrderProductItem = {
+      product_id: productId,
+      product: newProduct,
+      quantity: 1,
+      unit_price: price,
+      total_price: price,
+      notes: ''
+    };
+    setSelectedProducts(prev => [...prev, newItem]);
+  };
+
   // Submete o formulário com os dados completos
   const handleSubmit = (data: ServiceOrderFormData) => {
     onSubmit({
@@ -387,6 +505,34 @@ export default function ServiceOrderForm({
                 )}
               />
 
+              {/* Cliente */}
+              <FormField
+                control={form.control}
+                name="client_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliente</FormLabel>
+                    <FormControl>
+                      <ClientNameAutocomplete
+                        value={clientNameInput}
+                        onChange={(name, client) => {
+                          setClientNameInput(name || '');
+                          const id = client?.id ? String(client.id) : '';
+                          field.onChange(id);
+                        }}
+                        onCreateNewClient={(name) => {
+                          setClientNameInput(name);
+                          setShowClientModal(true);
+                        }}
+                        placeholder="Selecione o cliente ou crie novo"
+                        isDisabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Aeronave */}
               <FormField
                 control={form.control}
@@ -396,46 +542,30 @@ export default function ServiceOrderForm({
                     <FormLabel>Aeronave</FormLabel>
                     <FormControl>
                       <div className="flex gap-2">
-                        <Combobox
-                          options={aircraft.map(aircraftItem => ({
-                            value: String(aircraftItem.id),
-                            label: `${aircraftItem.matricula}${aircraftItem.client_name ? ` (${aircraftItem.client_name})` : ''}`
-                          }))}
-                          value={field.value}
-                          onValueChange={(value) => {
-                             field.onChange(value);
-                             // Quando uma aeronave é selecionada, carrega automaticamente o cliente
-                             if (value) {
-                             const aircraftFound = aircraft.find(a => String(a.id) === String(value));
-                             if (aircraftFound && aircraftFound.client_id) {
-                               form.setValue('client_id', String(aircraftFound.client_id));
-                               form.setValue('title', 'O.S. '+String(aircraftFound.matricula));
-                               setSelectedAircraft(aircraftFound);
-                             }
-                           } else {
-                             setSelectedAircraft(null);
-                             form.setValue('client_id', '');
-                           }
-                         }}
-                        placeholder="Selecione uma aeronave"
-                        searchPlaceholder="Buscar aeronave..."
-                        emptyText="Nenhuma aeronave encontrada"
-                        disabled={isSubmitting || isLoadingAircraft}
-                        loading={isLoadingAircraft}
-                        onSearch={searchAircraft}
-                        searchTerm={aircraftSearchTerm}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAircraftModal(true)}
-                        disabled={isSubmitting}
-                        className="shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        <AircraftAutocompleteSelect
+                          selectedAircraft={selectedAircraft as any}
+                          onAircraftSelect={(a) => {
+                            if (a) {
+                              field.onChange(String(a.id));
+                              if (a.client_id) {
+                                form.setValue('client_id', String(a.client_id));
+                                setClientNameInput(a.client?.name || clientNameInput);
+                              }
+                              form.setValue('title', 'O.S. ' + String(a.matricula));
+                              setSelectedAircraft(a as any);
+                            } else {
+                              field.onChange('');
+                              setSelectedAircraft(null);
+                            }
+                          }}
+                          placeholder="Buscar aeronave..."
+                          disabled={isSubmitting || isLoadingAircraft}
+                          className="flex-1"
+                        />
+                        <Button type="button" variant="outline" onClick={() => setShowAircraftModal(true)}>
+                          Cadastrar nova aeronave...
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -552,6 +682,103 @@ export default function ServiceOrderForm({
                 )}
               />
 
+              {/* Funil */}
+              {/* {JSON.stringify(form.getValues())} */}
+              <FormField
+                control={form.control}
+                name="funnel_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Funil</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value ? String(field.value) : ""} 
+                      disabled={isSubmitting || isLoadingFunnels}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um funil" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingFunnels ? (
+                          <SelectItem value="loading" disabled>
+                            Carregando funis...
+                          </SelectItem>
+                        ) : funnels.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            Nenhum funil disponível
+                          </SelectItem>
+                        ) : (
+                          funnels.map((funnel) => (
+                            <SelectItem key={funnel.id} value={String(funnel.id)}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: funnel.color }}
+                                />
+                                {funnel.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Etapa */}
+              <FormField
+                control={form.control}
+                name="stage_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Etapa</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value ? String(field.value) : ""} 
+                      disabled={isLoadingStages || !selectedFunnelId}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma etapa" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {!selectedFunnelId ? (
+                          <SelectItem value="no-funnel" disabled>
+                            Selecione um funil primeiro
+                          </SelectItem>
+                        ) : isLoadingStages ? (
+                          <SelectItem value="loading" disabled>
+                            Carregando etapas...
+                          </SelectItem>
+                        ) : stages.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            Nenhuma etapa disponível
+                          </SelectItem>
+                        ) : (
+                          stages.map((stage) => (
+                            <SelectItem key={stage.id} value={String(stage.id)}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: stage.color }}
+                                />
+                                {stage.name}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Data Início Estimada */}
               <FormField
                 control={form.control}
@@ -611,7 +838,6 @@ export default function ServiceOrderForm({
                         disabled={isSubmitting || isLoadingUsers}
                         loading={isLoadingUsers}
                         onSearch={searchUsers}
-                        searchTerm={usersSearchTerm}
                       />
                     </FormControl>
                     <FormMessage />
@@ -658,31 +884,17 @@ export default function ServiceOrderForm({
           <CardContent className="space-y-4">
             {/* Adicionar Serviço */}
             <div className="flex gap-2">
-              <Combobox
-                options={availableServices.map(service => ({
-                  value: String(service.id),
-                  label: `${service.name} - R$ ${Number(service.price || 0).toFixed(2)}`
-                }))}
-                value=""
-                onValueChange={addService}
-                placeholder="Selecione um serviço para adicionar"
-                searchPlaceholder="Buscar serviço..."
-                emptyText="Nenhum serviço encontrado"
+              <ServiceAutocompleteSelect
+                onServiceSelect={(service) => {
+                  if (service) addServiceFromRecord(service);
+                }}
+                placeholder="Buscar serviço..."
                 disabled={isSubmitting || isLoadingServices}
-                loading={isLoadingServices}
                 className="flex-1"
-                onSearch={searchServices}
-                searchTerm={servicesSearchTerm}
+                excludeServiceIds={selectedServices.map(s => String(s.service_id))}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowServiceModal(true)}
-                disabled={isSubmitting}
-                className="shrink-0"
-              >
-                <Plus className="h-4 w-4" />
+              <Button type="button" variant="outline" onClick={() => setShowServiceModal(true)}>
+                Cadastrar novo serviço...
               </Button>
             </div>
 
@@ -764,31 +976,17 @@ export default function ServiceOrderForm({
           <CardContent className="space-y-4">
             {/* Adicionar Produto */}
             <div className="flex gap-2">
-              <Combobox
-                options={availableProducts.map(product => ({
-                  value: String(product.id),
-                  label: `${product.name} - R$ ${Number(product.salePrice || 0).toFixed(2)} (Estoque: ${Number(product.stock || 0)})`
-                }))}
-                value=""
-                onValueChange={addProduct}
-                placeholder="Selecione um produto para adicionar"
-                searchPlaceholder="Buscar produto..."
-                emptyText="Nenhum produto encontrado"
+              <ProductAutocompleteSelect
+                onProductSelect={(product) => {
+                  if (product) addProductFromRecord(product);
+                }}
+                placeholder="Buscar produto..."
                 disabled={isSubmitting || isLoadingProducts}
-                loading={isLoadingProducts}
                 className="flex-1"
-                onSearch={searchProducts}
-                searchTerm={productsSearchTerm}
+                excludeProductIds={selectedProducts.map(p => String(p.product_id))}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowProductModal(true)}
-                disabled={isSubmitting}
-                className="shrink-0"
-              >
-                <Plus className="h-4 w-4" />
+              <Button type="button" variant="outline" onClick={() => setShowProductModal(true)}>
+                Cadastrar novo produto...
               </Button>
             </div>
 
@@ -944,22 +1142,38 @@ export default function ServiceOrderForm({
       </form>
 
       {/* Modais de cadastro rápido */}
+      <QuickCreateClientModal
+        open={showClientModal}
+        onOpenChange={setShowClientModal}
+        onClientCreated={(client) => {
+          form.setValue('client_id', String(client.id));
+          setClientNameInput(client.name);
+        }}
+        initialName={clientNameInput}
+      />
       <QuickCreateAircraftModal
         open={showAircraftModal}
         onOpenChange={setShowAircraftModal}
-        onAircraftCreated={handleAircraftCreated}
+        onAircraftCreated={(aircraft) => {
+          form.setValue('aircraft_id', String(aircraft.id));
+          form.setValue('client_id', String(aircraft.client_id));
+          form.setValue('title', 'O.S. '+String(aircraft.matricula));
+          setSelectedAircraft(aircraft);
+        }}
       />
-
       <QuickCreateServiceModal
         open={showServiceModal}
         onOpenChange={setShowServiceModal}
-        onServiceCreated={handleServiceCreated}
+        onServiceCreated={(service) => {
+          addService(String(service.id));
+        }}
       />
-
       <QuickCreateProductModal
         open={showProductModal}
         onOpenChange={setShowProductModal}
-        onProductCreated={handleProductCreated}
+        onProductCreated={(product) => {
+          addProduct(String(product.id));
+        }}
       />
     </Form>
   );

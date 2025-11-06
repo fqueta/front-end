@@ -1,204 +1,396 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { 
+  useStages, 
+  useCreateStage, 
+  useUpdateStage, 
+  useDeleteStage, 
+  useToggleStageStatus,
+  useReorderStages
+} from "@/hooks/stages";
+import { useFunnels } from "@/hooks/funnels";
+import StageForm, { stageSchema, StageFormData } from "@/components/stages/StageForm";
+import StagesTable from "@/components/stages/StagesTable";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Stage } from "@/types";
+import { FinancialError, FinancialErrorHandler } from "@/types/financial-errors";
 
-type Funnel = {
-  id: string;
-  name: string;
-};
-
-type Stage = {
-  id: string;
-  funnelId: string;
-  name: string;
-  order: number;
-  color?: string;
-};
-
-function getStoredFunnels(): Funnel[] {
-  try {
-    const raw = localStorage.getItem("workflow.funnels");
-    const parsed = raw ? JSON.parse(raw) : [];
-    return parsed.map((f: any) => ({ id: f.id, name: f.name }));
-  } catch {
-    return [];
-  }
-}
-
-function getStoredStages(): Stage[] {
-  try {
-    const raw = localStorage.getItem("workflow.stages");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function storeStages(stages: Stage[]) {
-  try {
-    localStorage.setItem("workflow.stages", JSON.stringify(stages));
-  } catch {}
-}
-
+/**
+ * Página principal para gerenciamento de etapas
+ */
 export default function Etapas() {
-  const [funnels, setFunnels] = useState<Funnel[]>([]);
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingStage, setEditingStage] = useState<Stage | null>(null);
+  const [duplicatingStage, setDuplicatingStage] = useState<Stage | null>(null);
+  const [viewingStage, setViewingStage] = useState<Stage | null>(null);
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("all");
 
-  const [name, setName] = useState("");
-  const [order, setOrder] = useState<number>(1);
-  const [color, setColor] = useState<string>("#3b82f6");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Hooks para gerenciamento de dados
+  const { data: funnelsResponse, isLoading: isLoadingFunnels } = useFunnels();
+  const funnels = funnelsResponse?.data || [];
+  const { data: stagesResponse, isLoading } = useStages();
+  const stages = stagesResponse?.data || [];
+  const createStageMutation = useCreateStage();
+  const updateStageMutation = useUpdateStage();
+  const deleteStageMutation = useDeleteStage();
+  const toggleStatusMutation = useToggleStageStatus();
+  const reorderStagesMutation = useReorderStages();
 
-  useEffect(() => {
-    setFunnels(getStoredFunnels());
-    setStages(getStoredStages());
-  }, []);
+  // Form para criação/edição
+  const form = useForm<StageFormData>({
+    resolver: zodResolver(stageSchema),
+    defaultValues: {
+      name: "",
+      funnelId: "",
+      order: 0,
+      color: "#3B82F6",
+      description: "",
+      isActive: true
+    }
+  });
 
-  useEffect(() => {
-    storeStages(stages);
-  }, [stages]);
+  // Filtrar etapas por funil selecionado
+  const filteredStages = stages.filter(stage => 
+    selectedFunnelId !== "all" ? stage.funnelId === selectedFunnelId : true
+  );
 
-  const filteredStages = useMemo(() => stages.filter((s) => s.funnelId === selectedFunnelId).sort((a, b) => a.order - b.order), [stages, selectedFunnelId]);
-  const isEditing = useMemo(() => !!editingId, [editingId]);
-
-  useEffect(() => {
-    // Ajustar próximo order automaticamente
-    const maxOrder = filteredStages.reduce((acc, s) => Math.max(acc, s.order), 0);
-    setOrder(maxOrder + 1);
-  }, [filteredStages.length]);
-
-  const resetForm = () => {
-    setName("");
-    setColor("#3b82f6");
-    setEditingId(null);
+  /**
+   * Abre o formulário para criar uma nova etapa
+   */
+  const handleCreate = () => {
+    setEditingStage(null);
+    form.reset({
+      name: "",
+      description: "",
+      funnelId: selectedFunnelId !== "all" ? Number(selectedFunnelId) : "",
+      order: Math.max(...filteredStages.map(s => s.order), 0) + 1,
+      color: "#3b82f6",
+      isActive: true,
+      settings: {
+        autoAdvance: false,
+        notifyOnEntry: false,
+        notifyOnExit: false,
+        requireApproval: false,
+        itemLimit: undefined,
+        timeLimit: undefined,
+      },
+    });
+    setIsFormOpen(true);
   };
 
-  const handleCreateOrUpdate = () => {
-    if (!selectedFunnelId) {
-      toast.error("Selecione um funil");
-      return;
-    }
-    if (!name.trim()) {
-      toast.error("Informe o nome da etapa");
-      return;
-    }
-    if (isEditing) {
-      setStages((prev) => prev.map((s) => (s.id === editingId ? { ...s, name, order, color } : s)));
-      toast.success("Etapa atualizada");
-    } else {
-      const newStage: Stage = {
-        id: crypto.randomUUID(),
-        funnelId: selectedFunnelId,
-        name: name.trim(),
-        order: Number(order) || 1,
-        color: color || undefined,
-      };
-      setStages((prev) => [...prev, newStage]);
-      toast.success("Etapa criada");
-    }
-    resetForm();
-  };
-
+  /**
+   * Abre o formulário para editar uma etapa existente
+   */
   const handleEdit = (stage: Stage) => {
-    setEditingId(stage.id);
-    setName(stage.name);
-    setOrder(stage.order);
-    setColor(stage.color || "#3b82f6");
+    setEditingStage(stage);
+    form.reset({
+      name: stage.name,
+      description: stage.description || "",
+      funnelId: stage.funnelId,
+      order: stage.order,
+      color: stage.color || "#3B82F6",
+      isActive: stage.isActive
+    });
+    setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setStages((prev) => prev.filter((s) => s.id !== id));
-    toast.success("Etapa excluída");
-    if (editingId === id) resetForm();
+  /**
+   * Visualiza detalhes de uma etapa
+   */
+  const handleView = (stage: Stage) => {
+    setViewingStage(stage);
+  };
+
+  /**
+   * Abre o formulário para duplicar uma etapa existente
+   */
+  const handleDuplicate = (stage: Stage) => {
+    setDuplicatingStage(stage);
+    
+    // Calcula a próxima ordem disponível
+    const maxOrder = Math.max(...stages.map(s => s.order), 0);
+    const nextOrder = maxOrder + 1;
+    
+    form.reset({
+      name: `${stage.name} (Cópia)`,
+      description: stage.description || "",
+      funnelId: String(stage.funnelId),
+      color: stage.color,
+      isActive: true,
+      order: nextOrder
+    });
+    setIsFormOpen(true);
+  };
+
+  /**
+   * Reordena etapas
+   * Recebe funil e lista de IDs na nova ordem e persiste via serviço
+   */
+  const handleReorder = async (funnelId: string, stageIds: string[]) => {
+    try {
+      await reorderStagesMutation.mutateAsync({ funnelId, stageIds });
+      toast.success("Ordem das etapas atualizada!");
+    } catch (error) {
+      console.error("Erro ao reordenar etapas:", error);
+      // Mostra mensagem amigável quando for FinancialError
+      const friendly = error instanceof FinancialError
+        ? FinancialErrorHandler.getUserFriendlyMessage(error)
+        : (error as any)?.message || "Erro ao reordenar etapas";
+      toast.error(friendly);
+    }
+  };
+
+  /**
+   * Alterna o status ativo/inativo de uma etapa
+   */
+  const handleToggleStatus = async (stage: Stage) => {
+    try {
+      await toggleStatusMutation.mutateAsync({
+        id: stage.id,
+        isActive: !stage.isActive
+      });
+      toast.success(`Etapa ${stage.isActive ? 'desativada' : 'ativada'} com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao alterar status da etapa:", error);
+      toast.error("Erro ao alterar status da etapa");
+    }
+  };
+
+  /**
+   * Visualiza estatísticas de uma etapa
+   */
+  const handleViewStats = (stage: Stage) => {
+    // TODO: Implementar modal de estatísticas
+    toast.info("Funcionalidade de estatísticas em desenvolvimento");
+  };
+
+  /**
+   * Exclui uma etapa
+   */
+  const handleDelete = async (stage: Stage) => {
+    try {
+      await deleteStageMutation.mutateAsync(stage.id);
+      toast.success("Etapa excluída com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao excluir etapa");
+    }
+  };
+
+  /**
+   * Submete o formulário de criação/edição/duplicação
+   */
+  const handleSubmit = async (data: StageFormData) => {
+    try {
+      if (editingStage) {
+        await updateStageMutation.mutateAsync({
+          id: editingStage.id,
+          data,
+        });
+        toast.success("Etapa atualizada com sucesso!");
+      } else if (duplicatingStage) {
+        await createStageMutation.mutateAsync(data);
+        toast.success("Etapa duplicada com sucesso!");
+      } else {
+        await createStageMutation.mutateAsync(data);
+        toast.success("Etapa criada com sucesso!");
+      }
+      setIsFormOpen(false);
+      setEditingStage(null);
+      setDuplicatingStage(null);
+    } catch (error) {
+      const action = editingStage ? "atualizar" : duplicatingStage ? "duplicar" : "criar";
+      toast.error(`Erro ao ${action} etapa`);
+    }
+  };
+
+  /**
+   * Cancela a edição/criação/duplicação
+   */
+  const handleCancel = () => {
+    setIsFormOpen(false);
+    setEditingStage(null);
+    setDuplicatingStage(null);
+    form.reset();
   };
 
   return (
     <div className="space-y-6">
+      {/* Filtro por Funil */}
       <Card>
         <CardHeader>
-          <CardTitle>Etapas</CardTitle>
-          <CardDescription>Defina as etapas de cada funil para o workflow</CardDescription>
+          <CardTitle>Filtrar por Funil</CardTitle>
+          <CardDescription>
+            Selecione um funil para visualizar e gerenciar suas etapas
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1 space-y-3">
-              <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um funil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {funnels.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {funnels.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhum funil encontrado. Cadastre em "Funis".</p>
-              )}
-              <Input placeholder="Nome da etapa" value={name} onChange={(e) => setName(e.target.value)} />
-              <Input type="number" placeholder="Ordem" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
-              <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-              <div className="flex gap-2">
-                <Button onClick={handleCreateOrUpdate}>{isEditing ? "Salvar alterações" : "Adicionar etapa"}</Button>
-                {isEditing && <Button variant="secondary" onClick={resetForm}>Cancelar</Button>}
-              </div>
-            </div>
-            <div className="md:col-span-2">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ordem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Cor</TableHead>
-                    <TableHead className="w-40">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStages.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell>{s.order}</TableCell>
-                      <TableCell>{s.name}</TableCell>
-                      <TableCell>
-                        <div className="h-4 w-8 rounded" style={{ backgroundColor: s.color || "#3b82f6" }} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(s)}>Editar</Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(s.id)}>Excluir</Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {selectedFunnelId && filteredStages.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        Nenhuma etapa para este funil
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!selectedFunnelId && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
-                        Selecione um funil para ver as etapas
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <p className="text-sm text-muted-foreground">
-            Dica: a ordem define a sequência no quadro de workflow.
-          </p>
+          <Select value={selectedFunnelId} onValueChange={setSelectedFunnelId}>
+            <SelectTrigger className="max-w-md">
+              <SelectValue placeholder="Todos os funis" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os funis</SelectItem>
+              {funnels.map((funnel) => (
+                <SelectItem key={funnel.id} value={funnel.id}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: funnel.color }}
+                    />
+                    {funnel.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
+
+      {/* Tabela de Etapas */}
+      <StagesTable
+        stages={filteredStages}
+        funnels={funnels}
+        isLoading={isLoading}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDuplicate={handleDuplicate}
+        onReorder={handleReorder}
+        onToggleStatus={handleToggleStatus}
+        onViewStats={handleViewStats}
+        onDelete={handleDelete}
+        onCreate={handleCreate}
+        selectedFunnelId={selectedFunnelId}
+      />
+
+      {/* Dialog de Formulário */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingStage 
+                ? "Editar Etapa" 
+                : duplicatingStage 
+                  ? "Duplicar Etapa" 
+                  : "Criar Nova Etapa"
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {editingStage 
+                ? "Atualize as informações da etapa abaixo."
+                : duplicatingStage
+                  ? "Revise e ajuste as informações da etapa duplicada abaixo."
+                  : "Preencha as informações para criar uma nova etapa."
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <StageForm
+            form={form}
+            funnels={funnels}
+            isLoadingFunnels={isLoadingFunnels}
+            onSubmit={handleSubmit}
+            isSubmitting={createStageMutation.isPending || updateStageMutation.isPending}
+            onCancel={handleCancel}
+            isEditing={!!editingStage || !!duplicatingStage}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Visualização */}
+      <Dialog open={!!viewingStage} onOpenChange={() => setViewingStage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: viewingStage?.color }}
+              />
+              {viewingStage?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes da etapa
+            </DialogDescription>
+          </DialogHeader>
+          {viewingStage && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-sm text-gray-500 mb-1">Descrição</h4>
+                <p className="text-sm">
+                  {viewingStage.description || "Nenhuma descrição fornecida"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 mb-1">Funil</h4>
+                  <p className="text-sm">
+                    {funnels.find(f => f.id === viewingStage.funnelId)?.name || "Funil não encontrado"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 mb-1">Ordem</h4>
+                  <p className="text-sm">{viewingStage.order}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 mb-1">Status</h4>
+                  <p className="text-sm">
+                    {viewingStage.isActive ? "Ativo" : "Inativo"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 mb-1">Cor</h4>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-4 h-4 rounded border"
+                      style={{ backgroundColor: viewingStage.color }}
+                    />
+                    <span className="text-sm font-mono">{viewingStage.color}</span>
+                  </div>
+                </div>
+              </div>
+              {viewingStage.settings && (
+                <div>
+                  <h4 className="font-medium text-sm text-gray-500 mb-2">Configurações</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Avanço Automático:</span>
+                      <span>{viewingStage.settings.autoAdvance ? "Sim" : "Não"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Notificar Mudança:</span>
+                      <span>{viewingStage.settings.notifyChange ? "Sim" : "Não"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Requer Aprovação:</span>
+                      <span>{viewingStage.settings.requireApproval ? "Sim" : "Não"}</span>
+                    </div>
+                    {viewingStage.settings.itemLimit && (
+                      <div className="flex justify-between">
+                        <span>Limite de Itens:</span>
+                        <span>{viewingStage.settings.itemLimit}</span>
+                      </div>
+                    )}
+                    {viewingStage.settings.timeLimit && (
+                      <div className="flex justify-between">
+                        <span>Limite de Tempo:</span>
+                        <span>{viewingStage.settings.timeLimit} minutos</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

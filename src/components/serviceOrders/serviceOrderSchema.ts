@@ -17,6 +17,9 @@ export const serviceOrderSchema = z.object({
   assigned_to: z.string().optional(),
   notes: z.string().optional(),
   internal_notes: z.string().optional(),
+  funnel_id: z.string().optional(), // Campo para identificar o funil
+  stage_id: z.string().optional(), // Campo para identificar a etapa no workflow
+  stageId: z.string().optional(), // Campo para identificar a etapa no workflow (compatibilidade)
   services: z.array(z.object({
     service_id: z.string(),
     quantity: z.number().min(1),

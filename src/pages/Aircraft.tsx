@@ -34,7 +34,10 @@ export default function Aircraft() {
   const navigate = useNavigate();
 
   // Hooks para aeronaves
-  const { data: aircraft = [], isLoading: isLoadingAircraft, refetch } = useAircraftList();
+  const { data: aircraftResponse, isLoading: isLoadingAircraft, refetch } = useAircraftList();
+  // console.log('Debug - aircraftResponse:', aircraftResponse);
+  const aircraft = aircraftResponse || [];
+  // console.log('Debug - aircraft:', aircraft);
   const createMutation = useCreateAircraft({
     onSuccess: () => {
       toast.success('Aeronave criada com sucesso!');
@@ -69,7 +72,8 @@ export default function Aircraft() {
   });
 
   // Hook para clientes (proprietários)
-  const { data: clients = [], isLoading: isLoadingClients } = useClientsList();
+  const { data: clientsResponse, isLoading: isLoadingClients } = useClientsList();
+  const clients = clientsResponse?.data || [];
 
   // Formulário
   const form = useForm<AircraftFormData>({

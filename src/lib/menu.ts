@@ -8,6 +8,7 @@ import {
   DollarSign,
   BarChart3,
   Settings,
+  Plane,
   LucideIcon,
 } from "lucide-react";
 import { MenuItemDTO, MenuItemResolved } from "@/types/menu";
@@ -23,6 +24,7 @@ export const iconMap: Record<string, LucideIcon> = {
   DollarSign,
   BarChart3,
   Settings,
+  Plane,
 };
 
 // Helper to check if can_view is truthy (considers 1, '1', true as truthy)
@@ -135,6 +137,12 @@ export const defaultMenu: MenuItemDTO[] = [
     url: "/service-orders",
     icon: "ClipboardList",
     permission: "service-orders.view"
+  },
+  {
+    title: "Atendimentos de Aeronaves",
+    url: "/aircraft-attendance",
+    icon: "Plane",
+    permission: "aircraft-attendance.view"
   },
   {
     title: "Financeiro",

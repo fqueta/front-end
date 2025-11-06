@@ -245,6 +245,40 @@ export default function ServiceOrderDetails({
               </div>
 
               <div>
+                <label className="text-sm font-medium text-gray-600">Funil</label>
+                <p className="mt-1 flex items-center gap-2">
+                  {serviceOrder.funnel ? (
+                    <>
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: serviceOrder.funnel.color }}
+                      />
+                      {serviceOrder.funnel.name}
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600">Etapa</label>
+                <p className="mt-1 flex items-center gap-2">
+                  {serviceOrder.stage ? (
+                    <>
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: serviceOrder.stage.color }}
+                      />
+                      {serviceOrder.stage.name}
+                    </>
+                  ) : (
+                    "-"
+                  )}
+                </p>
+              </div>
+
+              <div>
                 <label className="text-sm font-medium text-gray-600">Data de Criação</label>
                 <p className="mt-1 flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />

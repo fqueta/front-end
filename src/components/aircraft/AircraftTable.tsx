@@ -67,7 +67,10 @@ export function AircraftTable({ aircraft, onEdit, onDelete, onView, isLoading }:
               </Badge>
             </TableCell>
             <TableCell>
-              {new Date(item.created_at).toLocaleDateString('pt-BR')}
+              {item.created_at && !isNaN(new Date(item.created_at).getTime())
+                ? new Date(item.created_at).toLocaleDateString('pt-BR')
+                : 'Data inválida'
+              }
             </TableCell>
             <TableCell className="text-right">
               <DropdownMenu>

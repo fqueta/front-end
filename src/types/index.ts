@@ -1,5 +1,8 @@
 // Core entities for the OS and Budget Management System
 
+// Export workflow types
+export * from './workflows';
+
 export interface User {
   id: string;
   name: string;

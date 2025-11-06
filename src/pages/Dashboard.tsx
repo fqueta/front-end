@@ -12,85 +12,88 @@ import {
   CheckCircle,
   Clock,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useServiceOrderStats, useServiceOrdersList } from "@/hooks/serviceOrders";
+import { useFinancialSummary } from "@/hooks/useFinancial";
+import { useClientsList } from "@/hooks/clients";
 
 export default function Dashboard() {
-  // Mock data - will be replaced with real API calls
+  // Hooks para buscar dados reais da API
+  const { data: serviceOrderStats, isLoading: isLoadingServiceOrders } = useServiceOrderStats();
+  const { data: financialSummary, loading: isLoadingFinancial } = useFinancialSummary();
+  const { data: clientsResponse, isLoading: isLoadingClients } = useClientsList();
+  const { data: recentServiceOrders, isLoading: isLoadingRecentOrders } = useServiceOrdersList({
+    limit: 10,
+    sort: 'created_at',
+    order: 'desc'
+  });
+
+  // Dados processados das APIs
   const stats = {
-    totalBudgets: 45,
-    pendingBudgets: 12,
-    activeServiceOrders: 23,
-    monthlyRevenue: 125000,
-    cashBalance: 85000,
-    clientsCount: 156,
+    totalBudgets: 0, // TODO: Implementar quando houver API de orçamentos
+    pendingBudgets: 0, // TODO: Implementar quando houver API de orçamentos
+    activeServiceOrders: serviceOrderStats?.active_count || 0,
+    monthlyRevenue: financialSummary?.monthly_revenue || 0,
+    cashBalance: financialSummary?.cash_balance || 0,
+    clientsCount: clientsResponse?.total || 0,
   };
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: "budget",
-      title: "Orçamento #2024-001 criado",
-      client: "João Silva",
-      amount: 2500,
-      status: "pending",
-      time: "2 horas atrás",
-    },
-    {
-      id: 2,
-      type: "service_order",
-      title: "OS #2024-045 concluída",
-      client: "Maria Santos",
-      amount: 1800,
-      status: "completed",
-      time: "4 horas atrás",
-    },
-    {
-      id: 3,
-      type: "payment",
-      title: "Pagamento recebido",
-      client: "Tech Corp",
-      amount: 5200,
-      status: "paid",
-      time: "1 dia atrás",
-    },
-  ];
+  // Estado de loading geral
+  const isLoading = isLoadingServiceOrders || isLoadingFinancial || isLoadingClients;
 
-  const pendingApprovals = [
-    {
-      id: 1,
-      number: "ORC-2024-034",
-      client: "Empresa ABC",
-      amount: 8500,
-      date: "2024-01-15",
-    },
-    {
-      id: 2,
-      number: "ORC-2024-035",
-      client: "Loja XYZ",
-      amount: 3200,
-      date: "2024-01-14",
-    },
-  ];
+  // Atividades recentes baseadas em ordens de serviço reais
+  const recentActivities = recentServiceOrders?.data?.map((order: any, index: number) => ({
+    id: order.id,
+    type: "service_order",
+    title: `Ordem de Serviço ${order.status === 'completed' ? 'finalizada' : 'criada'}`,
+    client: order.client?.name || 'Cliente não informado',
+    amount: order.total_amount || 0,
+    status: order.status,
+    time: new Date(order.created_at).toLocaleDateString('pt-BR'),
+  })) || [];
 
-  const upcomingDeadlines = [
-    {
-      id: 1,
-      type: "budget",
-      number: "ORC-2024-028",
-      client: "Cliente ABC",
-      deadline: "2024-01-20",
-      daysLeft: 3,
-    },
-    {
-      id: 2,
+  // Aprovações pendentes baseadas em ordens de serviço com status pendente
+  const pendingApprovals = recentServiceOrders?.data?.filter((order: any) => 
+    order.status === 'pending' || order.status === 'waiting_approval'
+  ).map((order: any) => ({
+    id: order.id,
+    type: "service_order",
+    title: `OS #${order.id}`,
+    client: order.client?.name || 'Cliente não informado',
+    amount: order.total_amount || 0,
+    daysWaiting: Math.floor((new Date().getTime() - new Date(order.created_at).getTime()) / (1000 * 60 * 60 * 24)),
+  })) || [];
+
+  // Próximos vencimentos baseados em ordens de serviço com prazos próximos
+  const upcomingDeadlines = recentServiceOrders?.data?.filter((order: any) => {
+    if (!order.deadline) return false;
+    const deadline = new Date(order.deadline);
+    const today = new Date();
+    const diffTime = deadline.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 7; // Próximos 7 dias
+  }).map((order: any) => {
+    const deadline = new Date(order.deadline);
+    const today = new Date();
+    const diffTime = deadline.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let priority = 'low';
+    if (diffDays <= 1) priority = 'high';
+    else if (diffDays <= 3) priority = 'medium';
+    
+    return {
+      id: order.id,
       type: "service_order",
-      number: "OS-2024-019",
-      client: "Empresa XYZ",
-      deadline: "2024-01-22",
-      daysLeft: 5,
-    },
-  ];
+      number: `OS-${order.id}`,
+      client: order.client?.name || 'Cliente não informado',
+      deadline: order.deadline,
+      priority,
+      daysLeft: diffDays,
+    };
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -126,10 +129,19 @@ export default function Dashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBudgets}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.pendingBudgets} pendentes
-            </p>
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.totalBudgets}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.pendingBudgets} pendentes
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -139,10 +151,19 @@ export default function Dashboard() {
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeServiceOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              Em andamento
-            </p>
+            {isLoadingServiceOrders ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.activeServiceOrders}</div>
+                <p className="text-xs text-muted-foreground">
+                  Em andamento
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -152,12 +173,21 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {(stats.monthlyRevenue / 1000).toFixed(0)}k
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Este mês
-            </p>
+            {isLoadingFinancial ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  R$ {(stats.monthlyRevenue / 1000).toFixed(0)}k
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Este mês
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -167,12 +197,21 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {(stats.cashBalance / 1000).toFixed(0)}k
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Disponível
-            </p>
+            {isLoadingFinancial ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  R$ {(stats.cashBalance / 1000).toFixed(0)}k
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Disponível
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -182,10 +221,19 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.clientsCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Cadastrados
-            </p>
+            {isLoadingClients ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.clientsCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Cadastrados
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -213,38 +261,51 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
-                      {activity.type === "budget" && <FileText className="h-4 w-4" />}
-                      {activity.type === "service_order" && <ClipboardList className="h-4 w-4" />}
-                      {activity.type === "payment" && <DollarSign className="h-4 w-4" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.client} • {activity.time}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      R$ {activity.amount.toLocaleString()}
-                    </p>
-                    <Badge variant={
-                      activity.status === "completed" ? "default" :
-                      activity.status === "pending" ? "secondary" : "outline"
-                    }>
-                      {activity.status === "completed" && "Concluído"}
-                      {activity.status === "pending" && "Pendente"}
-                      {activity.status === "paid" && "Pago"}
-                    </Badge>
-                  </div>
+            {isLoadingRecentOrders ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Carregando atividades...</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : recentActivities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhuma atividade recente encontrada</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+                        {activity.type === "budget" && <FileText className="h-4 w-4" />}
+                        {activity.type === "service_order" && <ClipboardList className="h-4 w-4" />}
+                        {activity.type === "payment" && <DollarSign className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.client} • {activity.time}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        R$ {activity.amount?.toLocaleString() || '0'}
+                      </p>
+                      <Badge variant={
+                        activity.status === "completed" ? "default" :
+                        activity.status === "pending" ? "secondary" : "outline"
+                      }>
+                        {activity.status === "completed" && "Concluído"}
+                        {activity.status === "pending" && "Pendente"}
+                        {activity.status === "paid" && "Pago"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -260,26 +321,39 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {pendingApprovals.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="text-sm font-medium">{item.number}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.client} • {item.date}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      R$ {item.amount.toLocaleString()}
-                    </p>
-                    <Button size="sm" variant="outline" className="mt-1">
-                      Revisar
-                    </Button>
-                  </div>
+            {isLoadingRecentOrders ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Carregando aprovações...</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : pendingApprovals.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhuma aprovação pendente</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingApprovals.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div>
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.client} • {item.daysWaiting} dias aguardando
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        R$ {item.amount?.toLocaleString() || '0'}
+                      </p>
+                      <Button size="sm" variant="outline" className="mt-1">
+                        Revisar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -296,28 +370,41 @@ export default function Dashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {upcomingDeadlines.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                    item.daysLeft <= 3 ? "bg-destructive/10 text-destructive" : "bg-muted"
-                  }`}>
-                    {item.type === "budget" ? <FileText className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{item.number}</p>
-                    <p className="text-xs text-muted-foreground">{item.client}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge variant={item.daysLeft <= 3 ? "destructive" : "secondary"}>
-                    {item.daysLeft} dias
-                  </Badge>
-                </div>
+          {isLoadingRecentOrders ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando vencimentos...</span>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : upcomingDeadlines.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Nenhum vencimento próximo</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {upcomingDeadlines.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      item.daysLeft <= 3 ? "bg-destructive/10 text-destructive" : "bg-muted"
+                    }`}>
+                      {item.type === "budget" ? <FileText className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{item.number}</p>
+                      <p className="text-xs text-muted-foreground">{item.client}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={item.daysLeft <= 3 ? "destructive" : "secondary"}>
+                      {item.daysLeft} dias
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
