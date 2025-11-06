@@ -48,10 +48,13 @@ class ClientsService extends IndependentApiService {
 
   /**
    * Exclui cliente
+   * Usa o método DELETE da classe base explicitamente para evitar colisão com o alias público delete(id).
    * @param id - ID do cliente
    */
   async deleteClient(id: string): Promise<void> {
-    return this.delete<void>(`/clients/${id}`);
+    // Importante: usar super.delete para chamar o método protegido da classe base
+    // e evitar recursão com o alias público delete(id) abaixo.
+    return super.delete<void>(`/clients/${id}`);
   }
 
   // Métodos para compatibilidade com o hook genérico
@@ -71,6 +74,10 @@ class ClientsService extends IndependentApiService {
     return this.updateClient(id, data);
   }
 
+  /**
+   * Alias público para compatibilidade com useGenericApi
+   * Delegado para deleteClient(id)
+   */
   async delete(id: string): Promise<void> {
     return this.deleteClient(id);
   }

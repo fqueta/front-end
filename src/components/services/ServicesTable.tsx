@@ -93,12 +93,19 @@ export default function ServicesTable({
     }
   };
 
+  // Formata o preço como número e aplica máscara brasileira
+  // Recebe string/number e retorna "1.234,56"
+  const formatPriceBRL = (value: number | string | null | undefined) => {
+    const num = Number(value ?? 0);
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const filteredServices = services.filter(service =>
     service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     service.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (service.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+  // console.log('filteredServices:', filteredServices);
   return (
     <Card>
       <CardHeader>
@@ -127,8 +134,8 @@ export default function ServicesTable({
                 <TableHead>Serviço</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Preço</TableHead>
-                <TableHead>Duração</TableHead>
-                <TableHead>Nível</TableHead>
+                {/* <TableHead>Duração</TableHead> */}
+                {/* <TableHead>Nível</TableHead> */}
                 <TableHead>Materiais</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -210,25 +217,12 @@ export default function ServicesTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{service.category}</Badge>
+                      <Badge variant="outline">{service.categoryData?.name || service.category}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">
-                        R$ {service.price ? service.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+                        R$ {formatPriceBRL(service.price)}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">
-                          {service.estimatedDuration} {service.unit}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getSkillLevelVariant(service.skillLevel)}>
-                        {getSkillLevelLabel(service.skillLevel)}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={service.requiresMaterials ? "default" : "secondary"}>

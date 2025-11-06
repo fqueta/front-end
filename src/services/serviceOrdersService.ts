@@ -108,20 +108,18 @@ class ServiceOrdersService extends BaseApiService {
   async deleteServiceOrder(id: string): Promise<void> {
     // Busca o valor antigo para auditoria
     const oldServiceOrder = await this.getServiceOrder(id);
-    
-    const response = await fetch(`${this.API_BASE_URL}${this.endpoint}/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-    await this.handleResponse<void>(response);
-    
+
+    // Usa o método padronizado do BaseApiService (mesmo padrão do PUT)
+    // Importante: chamar super.delete para evitar colisão com o alias público delete(id)
+    await super.delete<void>(`${this.endpoint}/${id}`);
+
     // Log da auditoria
     serviceOrderAuditService.log({
       entityType: ServiceOrderAuditEntityType.SERVICE_ORDER,
       entityId: id,
       action: AuditAction.DELETE,
       oldValues: oldServiceOrder,
-      metadata: { 
+      metadata: {
         operation: 'deleteServiceOrder'
       }
     });
@@ -268,6 +266,11 @@ class ServiceOrdersService extends BaseApiService {
 
   async update(id: string, data: UpdateServiceOrderInput): Promise<ServiceOrder> {
     return this.updateServiceOrder(id, data);
+  }
+
+  // Alias para compatibilidade com useGenericApi
+  async delete(id: string): Promise<void> {
+    return this.deleteServiceOrder(id);
   }
 
   async deleteById(id: string): Promise<void> {

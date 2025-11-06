@@ -54,6 +54,8 @@ import { AircraftAutocompleteSelect } from "@/components/aircraft/AircraftAutoco
 import { ServiceAutocompleteSelect } from "@/components/services/ServiceAutocompleteSelect";
 import { ProductAutocompleteSelect } from "@/components/products/ProductAutocompleteSelect";
 import { QuickCreateClientModal } from "./QuickCreateClientModal";
+import type { ProductRecord } from "@/types/products";
+import type { ServiceRecord } from "@/types/services";
 
 
 
@@ -145,8 +147,8 @@ export default function ServiceOrderForm({
   clients,
   users,
   aircraft,
-  availableServices,
-  availableProducts,
+  availableServices = [],
+  availableProducts = [],
   isLoadingClients,
   isLoadingUsers,
   isLoadingAircraft,
@@ -183,7 +185,7 @@ export default function ServiceOrderForm({
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [showClientModal, setShowClientModal] = useState(false);
   const [clientNameInput, setClientNameInput] = useState<string>("");
-  console.log('ddos do Form', form.getValues());
+  // console.log('ddos do Form', form.getValues());
   // Hooks para funis e etapas
   const { data: funnelsResponse, isLoading: isLoadingFunnels } = useFunnels();
   const funnels = funnelsResponse?.data || [];
@@ -329,9 +331,8 @@ export default function ServiceOrderForm({
   // Adiciona um produto à lista
   const addProduct = (productId: string) => {
     if (!productId) return;
-    // console.log('productId recebido:', productId, 'tipo:', typeof productId);
-    // console.log('availableProducts:', availableProducts);
-    const product = availableProducts.find(p => String(p.id) === productId);
+    const list = Array.isArray(availableProducts) ? availableProducts : [];
+    const product = list.find(p => String(p.id) === productId);
     if (!product) return;
 
     // Verifica se o produto já foi adicionado
@@ -506,32 +507,34 @@ export default function ServiceOrderForm({
               />
 
               {/* Cliente */}
-              <FormField
-                control={form.control}
-                name="client_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente</FormLabel>
-                    <FormControl>
-                      <ClientNameAutocomplete
-                        value={clientNameInput}
-                        onChange={(name, client) => {
-                          setClientNameInput(name || '');
-                          const id = client?.id ? String(client.id) : '';
-                          field.onChange(id);
-                        }}
-                        onCreateNewClient={(name) => {
-                          setClientNameInput(name);
-                          setShowClientModal(true);
-                        }}
-                        placeholder="Selecione o cliente ou crie novo"
-                        isDisabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!(selectedAircraft && selectedAircraft.client_id) && (
+                <FormField
+                  control={form.control}
+                  name="client_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cliente</FormLabel>
+                      <FormControl>
+                        <ClientNameAutocomplete
+                          value={clientNameInput}
+                          onChange={(name, client) => {
+                            setClientNameInput(name || '');
+                            const id = client?.id ? String(client.id) : '';
+                            field.onChange(id);
+                          }}
+                          onCreateNewClient={(name) => {
+                            setClientNameInput(name);
+                            setShowClientModal(true);
+                          }}
+                          placeholder="Selecione o cliente ou crie novo"
+                          isDisabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* Aeronave */}
               <FormField
@@ -1165,14 +1168,14 @@ export default function ServiceOrderForm({
         open={showServiceModal}
         onOpenChange={setShowServiceModal}
         onServiceCreated={(service) => {
-          addService(String(service.id));
+          addServiceFromRecord(service);
         }}
       />
       <QuickCreateProductModal
         open={showProductModal}
         onOpenChange={setShowProductModal}
         onProductCreated={(product) => {
-          addProduct(String(product.id));
+          addProductFromRecord(product);
         }}
       />
     </Form>

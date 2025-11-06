@@ -17,6 +17,7 @@ export interface Service {
   active: boolean;
   requiresMaterials: boolean;
   skillLevel: 'basic' | 'intermediate' | 'advanced' | 'expert';
+  categoryData?: ServiceCategory;
   created_at?: string;
   updated_at?: string;
 }

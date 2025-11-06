@@ -751,9 +751,9 @@ export default function WorkflowPage() {
                       </Card>
                     );
                   }
-                  console.log('Debug - stages:', stages);
-                  console.log('Debug - selectedFunnel:', selectedFunnel);
-                  console.log('Debug - serviceOrders:', serviceOrders);
+                  // console.log('Debug - stages:', stages);
+                  // console.log('Debug - selectedFunnel:', selectedFunnel);
+                  // console.log('Debug - serviceOrders:', serviceOrders);
                   return (
                     <PipelineView
                       funnel={selectedFunnel}

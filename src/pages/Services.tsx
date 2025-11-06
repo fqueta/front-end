@@ -134,6 +134,7 @@ export default function Services() {
   const onSubmit = async (data: ServiceFormData) => {
     try {
       if (editingService) {
+        // console.log('data', data);
         const updateData: UpdateServiceInput = {
           name: data.name,
           description: data.description || '',
@@ -145,6 +146,7 @@ export default function Services() {
           requiresMaterials: data.requiresMaterials,
           skillLevel: data.skillLevel
         };
+        // console.log('updateData', updateData);
         await updateMutation.mutateAsync({ id: editingService.id, data: updateData });
       } else {
         const createData: CreateServiceInput = {

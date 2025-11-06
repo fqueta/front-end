@@ -1,6 +1,6 @@
 import { BaseApiService } from './BaseApiService';
-import { Service, CreateServiceInput, UpdateServiceInput, ServiceFilters } from '@/types/services';
 import { ApiResponse, PaginatedResponse } from '@/types/index';
+import { Service, CreateServiceInput, UpdateServiceInput, ServiceFilters } from '@/types/services';
 
 /**
  * Parâmetros para listagem de serviços
@@ -13,15 +13,13 @@ export interface ServiceListParams extends ServiceFilters {
 }
 
 /**
- * Serviço para gerenciar serviços
- * Estende BaseApiService para reutilizar funcionalidades comuns
+ * Serviço para gerenciamento de serviços
  */
 class ServicesService extends BaseApiService {
   private readonly endpoint = '/services';
 
   /**
-   * Lista todos os serviços com paginação e filtros
-   * @param params - Parâmetros de filtro e paginação
+   * Lista serviços com paginação e filtros
    */
   async listServices(params?: ServiceListParams): Promise<PaginatedResponse<Service>> {
     const response = await this.get<any>(this.endpoint, params);
@@ -30,7 +28,6 @@ class ServicesService extends BaseApiService {
 
   /**
    * Obtém um serviço por ID
-   * @param id - ID do serviço
    */
   async getService(id: string): Promise<Service> {
     const response = await this.get<ApiResponse<Service>>(`${this.endpoint}/${id}`);
@@ -39,7 +36,6 @@ class ServicesService extends BaseApiService {
 
   /**
    * Cria um novo serviço
-   * @param data - Dados do serviço
    */
   async createService(data: CreateServiceInput): Promise<Service> {
     const response = await this.post<ApiResponse<Service>>(this.endpoint, data);
@@ -48,8 +44,6 @@ class ServicesService extends BaseApiService {
 
   /**
    * Atualiza um serviço existente
-   * @param id - ID do serviço
-   * @param data - Dados para atualização
    */
   async updateService(id: string, data: UpdateServiceInput): Promise<Service> {
     const response = await this.put<ApiResponse<Service>>(`${this.endpoint}/${id}`, data);
@@ -57,33 +51,15 @@ class ServicesService extends BaseApiService {
   }
 
   /**
-   * Remove um serviço
-   * @param id - ID do serviço
+   * Exclui um serviço
    */
   async deleteService(id: string): Promise<void> {
-    await this.delete(`${this.endpoint}/${id}`);
+    // Usa o método padronizado do BaseApiService, alinhado ao padrão do PUT
+    // Importante: chamar super.delete para evitar colisão com o alias público delete(id)
+    await super.delete<void>(`${this.endpoint}/${id}`);
   }
 
-  /**
-   * Obtém categorias de serviços disponíveis
-   */
-  async getCategories(): Promise<{ id: string; name: string }[]> {
-    const response = await this.get<ApiResponse<{ id: string; name: string }[]>>('/service-categories');
-    return response.data;
-  }
-
-  /**
-   * Obtém unidades de tempo disponíveis
-   */
-  async getUnits(): Promise<{ value: string; label: string }[]> {
-    const response = await this.get<ApiResponse<{ value: string; label: string }[]>>('/service-units');
-    return response.data;
-  }
-
-  // Métodos de conveniência para compatibilidade com hooks genéricos
-  /**
-   * Lista serviços (alias para listServices)
-   */
+  // Métodos de conveniência para compatibilidade com useGenericApi
   async list(params?: ServiceListParams): Promise<PaginatedResponse<Service>> {
     return this.listServices(params);
   }
@@ -100,8 +76,13 @@ class ServicesService extends BaseApiService {
     return this.updateService(id, data);
   }
 
+  // Alias para compatibilidade com useGenericApi
+  async delete(id: string): Promise<void> {
+    return this.deleteService(id);
+  }
+
   async deleteById(id: string): Promise<void> {
-    await super.delete(`${this.endpoint}/${id}`);
+    return this.deleteService(id);
   }
 }
 

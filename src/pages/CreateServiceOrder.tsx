@@ -66,6 +66,27 @@ export default function CreateServiceOrder() {
     };
   }, [params.clientId, params.aircraftId]);
 
+  // Function-level comment: Cria e configura o react-hook-form com defaults, usando quickCreateData.
+  const form = useForm<ServiceOrderFormData>({
+    resolver: zodResolver(serviceOrderSchema),
+    defaultValues: {
+      doc_type: "os",
+      title: quickCreateData.title || "",
+      description: "",
+      client_id: quickCreateData.client_id || "",
+      aircraft_id: quickCreateData.aircraft_id || "",
+      funnel_id: "",
+      stage_id: "",
+      status: "draft",
+      priority: "medium",
+      estimated_start_date: "",
+      estimated_end_date: "",
+      notes: "",
+      internal_notes: "",
+      assigned_to: ""
+    }
+  });
+
   // Function-level comment: Submete dados do formulário mapeando para o input da API.
   const handleSubmit = async (data: any) => {
     const serviceOrderData: CreateServiceOrderInput = {
@@ -91,10 +112,16 @@ export default function CreateServiceOrder() {
     }
   };
 
+  // Function-level comment: Cancela a criação e volta para a listagem de OS.
+  const handleCancel = () => {
+    navigate(`/service-orders`);
+  };
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-4">Criar Ordem de Serviço</h1>
       <ServiceOrderForm
+        form={form}
         clients={clients}
         isLoadingClients={isLoadingClients}
         users={users}
@@ -110,8 +137,9 @@ export default function CreateServiceOrder() {
         searchAircraft={searchAircraft}
         searchServices={searchServices}
         searchProducts={searchProducts}
-        quickCreateData={quickCreateData}
         onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        isEditing={false}
       />
     </div>
   );

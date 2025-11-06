@@ -112,7 +112,15 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
     mutationOptions?: UseMutationOptions<void, Error, string>
   ) => {
     return useMutation({
-      mutationFn: (id: string) => service.delete(id),
+      // Guard e log para facilitar diagnóstico quando DELETE não dispara
+      mutationFn: (id: string) => {
+        if (typeof (service as any).delete !== 'function') {
+          console.error('[useGenericApi] service.delete não é uma função', service);
+          throw new Error('Service.delete(id) não implementado');
+        }
+        console.debug('[useGenericApi] Disparando DELETE', { entity: entityName, id });
+        return service.delete(id);
+      },
       onSuccess: (data, id) => {
         queryClient.invalidateQueries({ queryKey: [queryKey] });
         queryClient.removeQueries({ queryKey: [queryKey, 'detail', id] });
@@ -120,6 +128,7 @@ export function useGenericApi<T, CreateInput, UpdateInput, ListParams = any>(
         mutationOptions?.onSuccess?.(data, id, undefined);
       },
       onError: (error) => {
+        console.error('[useGenericApi] Erro no DELETE', error);
         toast.error(`Erro ao excluir ${entityName.toLowerCase()}: ${error.message}`);
         mutationOptions?.onError?.(error, error as any, undefined);
       },

@@ -11,12 +11,13 @@ interface ServicesStatsProps {
  * Exibe métricas importantes como total de serviços, preço médio, duração média e distribuição por nível
  */
 export function ServicesStats({ services }: ServicesStatsProps) {
+  // Calcula métricas com coerção numérica segura para evitar NaN em preços
   const totalServices = services.length;
   const activeServices = services.filter(s => s.active).length;
-  
-  // Calcula o preço médio dos serviços
+  // console.log('services', services);
+  // Calcula o preço médio dos serviços usando Number() para lidar com strings
   const averagePrice = services.length > 0 
-    ? services.reduce((sum, service) => sum + (service.price || 0), 0) / services.length
+    ? services.reduce((sum, service) => sum + (Number(service.price) || 0), 0) / services.length
     : 0;
   
   // Calcula a duração média dos serviços (convertendo tudo para minutos)
@@ -93,7 +94,7 @@ export function ServicesStats({ services }: ServicesStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            R$ {averagePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            R$ {Number(averagePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground">
             Por serviço
