@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAircraft } from '@/hooks/aircraft';
 import { AttendanceTimeline } from '@/components/aircraftAttendance/AttendanceTimeline';
 import type { AircraftRecord } from '@/types/aircraft';
+import { useServiceOrdersByAircraft, useFutureServiceOrdersByAircraft } from '@/hooks/serviceOrders';
 
 /**
  * Página de visualização detalhada de uma aeronave específica
@@ -15,7 +16,26 @@ export default function AircraftView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: aircraft, isLoading, error } = useAircraft(id!);
-  
+
+  // Hooks de ordens de serviço por aeronave (top-level para respeitar Rules of Hooks)
+  const ordersQuery = useServiceOrdersByAircraft(id || '');
+  const futureOrdersQuery = useFutureServiceOrdersByAircraft(id || '');
+
+  /**
+   * Formata data curta (YYYY-MM-DD) para pt-BR.
+   * Comentário da função: Evita duplicação de lógica de formatação de datas
+   * em listas de ordens de serviço.
+   */
+  const formatShortDate = (dateString?: string) => {
+    if (!dateString) return '—';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return dateString;
+    }
+  };
+
   // Debug logs
   // console.log('AircraftView - ID from params:', id);
   // console.log('AircraftView - Aircraft data:', aircraft);
@@ -174,6 +194,10 @@ export default function AircraftView() {
     );
   }
 
+  // Removido: chamadas de hooks abaixo de retornos condicionais para evitar quebra da ordem de hooks
+  // const ordersQuery = useServiceOrdersByAircraft(String(aircraft.id));
+  // const futureOrdersQuery = useFutureServiceOrdersByAircraft(String(aircraft.id));
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
@@ -217,11 +241,11 @@ export default function AircraftView() {
 
             <div>
               <label className="text-sm font-medium text-muted-foreground">Status</label>
-              <p className="text-sm">
+              <div className="text-sm">
                 <Badge variant={aircraft.active ? 'default' : 'destructive'} className="text-xs">
                   {aircraft.active ? 'Ativa' : 'Inativa'}
                 </Badge>
-              </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -278,6 +302,94 @@ export default function AircraftView() {
         title="Histórico de Atendimentos"
         maxItems={10}
       />
+
+      {/* Serviços Realizados (Ordens de Serviço) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            Serviços Realizados (OS da Aeronave)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ordersQuery.isLoading && (
+            <p className="text-sm text-muted-foreground">Carregando ordens de serviço...</p>
+          )}
+          {ordersQuery.error && (
+            <p className="text-sm text-destructive">Erro ao carregar ordens.</p>
+          )}
+          {!ordersQuery.isLoading && (ordersQuery.data?.data?.length || 0) === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma ordem encontrada para esta aeronave.</p>
+          )}
+          {(ordersQuery.data?.data || []).slice(0, 10).map((so) => (
+            <div key={so.id} className="py-2 border-b last:border-b-0 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+              <div className="md:col-span-2">
+                <span className="font-medium">{so.title || `OS #${so.id}`}</span>
+                <div className="text-muted-foreground">Cliente: {so.client?.name || '—'}</div>
+                {/* Botão de navegação para a página da OS */}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => navigate(`/service-orders/show/${so.id}?from=aircraft&aircraftId=${aircraft.id}`)}
+                >
+                  Ver OS
+                </Button>
+              </div>
+              <div>
+                <Badge variant="outline" className="text-xs">{so.status}</Badge>
+              </div>
+              <div className="text-right md:text-left">
+                <div>Início: {formatShortDate(so.estimated_start_date || so.actual_start_date)}</div>
+                <div>Término: {formatShortDate(so.estimated_end_date || so.actual_end_date)}</div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Agendamentos Futuros (Ordens de Serviço) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Calendar className="mr-2 h-5 w-5" />
+            Agendamentos Futuros (OS)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {futureOrdersQuery.isLoading && (
+            <p className="text-sm text-muted-foreground">Carregando agendamentos...</p>
+          )}
+          {futureOrdersQuery.error && (
+            <p className="text-sm text-destructive">Erro ao carregar agendamentos.</p>
+          )}
+          {!futureOrdersQuery.isLoading && (futureOrdersQuery.futureItems?.length || 0) === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhum agendamento futuro para esta aeronave.</p>
+          )}
+          {(futureOrdersQuery.futureItems || []).slice(0, 10).map((so) => (
+            <div key={so.id} className="py-2 border-b last:border-b-0 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+              <div className="md:col-span-2">
+                <span className="font-medium">{so.title || `OS #${so.id}`}</span>
+                <div className="text-muted-foreground">Cliente: {so.client?.name || '—'}</div>
+                {/* Botão de navegação para a página da OS futura */}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => navigate(`/service-orders/show/${so.id}?from=aircraft&aircraftId=${aircraft.id}`)}
+                >
+                  Ver OS
+                </Button>
+              </div>
+              <div>
+                <Badge variant="outline" className="text-xs">{so.status}</Badge>
+              </div>
+              <div className="text-right md:text-left">
+                <div>Início estimado: {formatShortDate(so.estimated_start_date)}</div>
+                <div>Fim estimado: {formatShortDate(so.estimated_end_date)}</div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* Dados de Configuração (RAB) */}
       <Card>

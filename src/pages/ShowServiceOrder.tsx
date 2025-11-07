@@ -76,6 +76,9 @@ export default function ShowServiceOrder() {
   const fromWorkflow = searchParams.get('from') === 'workflow';
   const funnelId = searchParams.get('funnelId');
   const funnelName = searchParams.get('funnelName');
+  // Origem AircraftView
+  const fromAircraft = searchParams.get('from') === 'aircraft';
+  const aircraftId = searchParams.get('aircraftId');
   
   // Hook para buscar ordem de serviço
   const {
@@ -108,12 +111,18 @@ export default function ShowServiceOrder() {
   };
 
   // Volta para a origem (workflow ou listagem)
+  /**
+   * Retorna para a origem adequada:
+   * - Se veio do workflow, retorna para o funil específico.
+   * - Se veio de AircraftView, retorna para a aeronave correspondente.
+   * - Caso contrário, volta para a listagem de OS.
+   */
   const handleBack = () => {
     if (fromWorkflow && funnelId) {
-      // Volta para o workflow no funil específico
       navigate(`/attendimento/workflow?funnelId=${funnelId}`);
+    } else if (fromAircraft && aircraftId) {
+      navigate(`/aircraft/${aircraftId}`);
     } else {
-      // Volta para a listagem padrão
       navigate("/service-orders");
     }
   };
@@ -181,7 +190,7 @@ export default function ShowServiceOrder() {
           <CardContent>
             <Button onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : 'Voltar para Listagem'}
+              {fromWorkflow ? `Voltar para Workflow${funnelName ? ` - ${funnelName}` : ''}` : fromAircraft ? 'Voltar para Aeronave' : 'Voltar para Listagem'}
             </Button>
           </CardContent>
         </Card>

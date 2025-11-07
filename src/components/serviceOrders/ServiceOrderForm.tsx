@@ -49,15 +49,13 @@ import { useFunnels } from "@/hooks/funnels";
 import { useStagesByFunnel } from "@/hooks/stages";
 import { Funnel, Stage } from "@/types/workflows";
 import { ClientAutocomplete } from "@/components/clients/ClientAutocomplete";
-import { ClientNameAutocomplete } from "@/components/clients/ClientNameAutocomplete";
+
 import { AircraftAutocompleteSelect } from "@/components/aircraft/AircraftAutocompleteSelect";
 import { ServiceAutocompleteSelect } from "@/components/services/ServiceAutocompleteSelect";
 import { ProductAutocompleteSelect } from "@/components/products/ProductAutocompleteSelect";
-import { QuickCreateClientModal } from "./QuickCreateClientModal";
 import type { ProductRecord } from "@/types/products";
 import type { ServiceRecord } from "@/types/services";
-
-
+import { useAircraft } from "@/hooks/aircraft"; // Importa hook para buscar aeronave por ID
 
 interface Client {
   id: string;
@@ -183,8 +181,7 @@ export default function ServiceOrderForm({
   const [productsTotal, setProductsTotal] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
-  const [showClientModal, setShowClientModal] = useState(false);
-  const [clientNameInput, setClientNameInput] = useState<string>("");
+
   // console.log('ddos do Form', form.getValues());
   // Hooks para funis e etapas
   const { data: funnelsResponse, isLoading: isLoadingFunnels } = useFunnels();
@@ -199,9 +196,15 @@ export default function ServiceOrderForm({
   
 
   
+  // Observa o campo aircraft_id do formulário para habilitar a busca por ID
+  const watchedAircraftId = form.watch('aircraft_id');
+  // Busca robusta da aeronave por ID quando o formulário possui um valor
+  const { data: aircraftById } = useAircraft(String(watchedAircraftId || ''), {
+    enabled: !!watchedAircraftId,
+  });
   // Sincroniza selectedAircraft com o aircraft_id do formulário quando carregado
   useEffect(() => {
-    const aircraftId = form.watch('aircraft_id');
+    const aircraftId = watchedAircraftId;
     
     if (aircraftId && aircraft.length > 0) {
       const foundAircraft = aircraft.find(a => String(a.id) === String(aircraftId));
@@ -216,7 +219,37 @@ export default function ServiceOrderForm({
     } else if (!aircraftId) {
       setSelectedAircraft(null);
     }
-  }, [form.watch('aircraft_id'), aircraft, form]);
+  }, [watchedAircraftId, aircraft]);
+
+  /**
+   * Atualiza a seleção de aeronave usando a busca por ID.
+   * Comentário da função: Quando a aeronave não está presente na lista paginada
+   * fornecida ao formulário, garantimos que a seleção seja exibida ao editar
+   * carregando diretamente do endpoint getById.
+   */
+  useEffect(() => {
+    if (aircraftById) {
+      // Evita sobrescrever se já estiver correta
+      if (!selectedAircraft || String(selectedAircraft.id) !== String((aircraftById as any).id)) {
+        setSelectedAircraft(aircraftById as any);
+        // Mantém coerência dos campos vinculados
+        form.setValue('client_id', String((aircraftById as any).client_id || ''));
+        const currentTitle = form.getValues('title');
+        if (!currentTitle) {
+          form.setValue('title', 'O.S. ' + String((aircraftById as any).matricula));
+        }
+      }
+    }
+  }, [aircraftById, selectedAircraft]);
+
+  /**
+   * Sincroniza automaticamente `client_id` quando o usuário seleciona a aeronave manualmente.
+   * Comentário da função: reflete o `client_id` de `selectedAircraft` no formulário.
+   */
+  useEffect(() => {
+    const cid = selectedAircraft?.client_id ? String(selectedAircraft.client_id) : '';
+    form.setValue('client_id', cid, { shouldValidate: true });
+  }, [selectedAircraft]);
   
   // Gerencia a etapa selecionada quando o funil mudar ou as etapas carregarem
   useEffect(() => {
@@ -506,35 +539,6 @@ export default function ServiceOrderForm({
                 )}
               />
 
-              {/* Cliente */}
-              {!(selectedAircraft && selectedAircraft.client_id) && (
-                <FormField
-                  control={form.control}
-                  name="client_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cliente</FormLabel>
-                      <FormControl>
-                        <ClientNameAutocomplete
-                          value={clientNameInput}
-                          onChange={(name, client) => {
-                            setClientNameInput(name || '');
-                            const id = client?.id ? String(client.id) : '';
-                            field.onChange(id);
-                          }}
-                          onCreateNewClient={(name) => {
-                            setClientNameInput(name);
-                            setShowClientModal(true);
-                          }}
-                          placeholder="Selecione o cliente ou crie novo"
-                          isDisabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               {/* Aeronave */}
               <FormField
@@ -552,7 +556,6 @@ export default function ServiceOrderForm({
                               field.onChange(String(a.id));
                               if (a.client_id) {
                                 form.setValue('client_id', String(a.client_id));
-                                setClientNameInput(a.client?.name || clientNameInput);
                               }
                               form.setValue('title', 'O.S. ' + String(a.matricula));
                               setSelectedAircraft(a as any);
@@ -1145,15 +1148,6 @@ export default function ServiceOrderForm({
       </form>
 
       {/* Modais de cadastro rápido */}
-      <QuickCreateClientModal
-        open={showClientModal}
-        onOpenChange={setShowClientModal}
-        onClientCreated={(client) => {
-          form.setValue('client_id', String(client.id));
-          setClientNameInput(client.name);
-        }}
-        initialName={clientNameInput}
-      />
       <QuickCreateAircraftModal
         open={showAircraftModal}
         onOpenChange={setShowAircraftModal}

@@ -45,10 +45,12 @@ const CardTitle = React.forwardRef<
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <p
+  // CardDescription: renderiza como div para evitar avisos de aninhamento inválido
+  // quando elementos de bloco (ex.: Badge que é um div) são utilizados como descendentes.
+  <div
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}

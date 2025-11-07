@@ -411,3 +411,49 @@ export function useServiceOrderFormData() {
     error: clientsSearch.error || usersSearch.error || servicesSearch.error || productsSearch.error || aircraftSearch.error
   };
 }
+
+export function useServiceOrdersByAircraft(
+  aircraftId: string,
+  params?: Omit<ServiceOrderListParams, 'aircraft_id'>,
+  queryOptions?: any
+) {
+  /**
+   * Retorna ordens de serviço filtradas por uma aeronave específica.
+   * Comentário da função: Este hook encapsula a listagem com filtro
+   * por `aircraft_id`, permitindo paginação e outras opções.
+   */
+  const api = getServiceOrdersApi();
+  return api.useList({ ...(params || {}), aircraft_id: aircraftId }, queryOptions);
+}
+
+export function useFutureServiceOrdersByAircraft(
+  aircraftId: string,
+  params?: Omit<ServiceOrderListParams, 'aircraft_id' | 'date_range'>,
+  queryOptions?: any
+) {
+  /**
+   * Retorna agendamentos futuros (ordens com data estimada >= hoje) da aeronave.
+   * Comentário da função: Combina filtro no servidor por `date_range.start` com
+   * processamento em memória para garantir apenas itens futuros e em status ativo.
+   */
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const listQuery = useServiceOrdersList(
+    { ...(params || {}), aircraft_id: aircraftId, date_range: { start: todayIso } },
+    queryOptions
+  );
+
+  const futureItems = useMemo(() => {
+    const data = listQuery.data?.data || [];
+    return data.filter(so => {
+      const start = so.estimated_start_date || so.actual_start_date || so.created_at;
+      const isFuture = start ? new Date(start) >= new Date(todayIso) : false;
+      const isActive = !['completed', 'cancelled'].includes(so.status);
+      return isFuture && isActive;
+    });
+  }, [listQuery.data, todayIso]);
+
+  return {
+    ...listQuery,
+    futureItems,
+  };
+}

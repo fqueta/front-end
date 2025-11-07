@@ -105,10 +105,12 @@ export default function CreateServiceOrder() {
 
     try {
       const created = await createServiceOrderMutation.mutateAsync(serviceOrderData);
-      toast({ title: "OS criada com sucesso", description: `#${created.id}` });
+      // Function-level comment: Notifica sucesso usando API correta do sonner.
+      toast.success("OS criada com sucesso", { description: `#${created.id}` });
       navigate(`/servicos/os/${created.id}`);
     } catch (error: any) {
-      toast({ title: "Erro ao criar OS", description: error?.message || "Ocorreu um erro" });
+      // Function-level comment: Notifica erro usando API correta do sonner.
+      toast.error("Erro ao criar OS", { description: error?.message || "Ocorreu um erro" });
     }
   };
 

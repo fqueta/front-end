@@ -106,10 +106,12 @@ export function QuickCreateAircraftModal({
     form.reset();
   };
 
+  // Layout responsivo do modal: largura maior e rolagem interna
+  // Adiciona max-h e overflow para evitar corte de conteúdo em telas menores
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="w-full sm:max-w-[640px] md:max-w-[800px] lg:max-w-[900px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-white z-10">
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
             Cadastrar Nova Aeronave

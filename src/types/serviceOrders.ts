@@ -247,6 +247,8 @@ export interface ServiceOrderFilters {
   priority?: ServiceOrderPriority;
   client_id?: string;
   assigned_to?: string;
+  // Filtro por aeronave (permite listar OS de uma aeronave específica)
+  aircraft_id?: string | number;
   date_range?: {
     start?: string;
     end?: string;
